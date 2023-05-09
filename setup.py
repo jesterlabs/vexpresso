@@ -13,7 +13,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 
 setup(
-    name="PACKAGE_NAME",
+    name="vexpresso",
     version="0.1.0",
     url="https://github.com/kragniz/cookiecutter-pypackage-minimal",
     license='MIT',
@@ -21,7 +21,7 @@ setup(
     author="Shyam Sudhakaran",
     author_email="shyamsnair@protonmail.com",
 
-    description="DUMB",
+    description="Quick, easy, and lightweight vector database",
 
     long_description=long_description,
     long_description_content_type="text/markdown",
