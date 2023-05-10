@@ -1,6 +1,6 @@
 import abc
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 
@@ -8,7 +8,13 @@ import numpy as np
 @dataclass
 class QueryOutput:
     embeddings: np.array
-    ids: Iterable[Any]
+    indices: List[int]
+    query_embedding: Optional[np.array] = None
+
+@dataclass
+class BatchedQueryOutput:
+    embeddings: np.array
+    indices: List[List[int]]
     query_embedding: Optional[np.array] = None
 
 
@@ -18,7 +24,6 @@ class QueryStrategy(metaclass=abc.ABCMeta):
         self,
         query_embeddings: np.array,
         embeddings: np.array,
-        ids: np.array,
         *args,
         **kwargs
     ) -> QueryOutput:
@@ -29,8 +34,7 @@ class QueryStrategy(metaclass=abc.ABCMeta):
         Args:
             query_embeddings (np.array): query, used to find nearest embeddings in set.
             embeddings (np.array): embeddings set, query is compared to this.
-            ids (Iterable[Any]): ids corresponding to the embeddings set.
 
         Returns:
-            QueryOutput: dataclass containing returned embeddings and corresponding ids
+            QueryOutput: dataclass containing returned embeddings and corresponding indices
         """

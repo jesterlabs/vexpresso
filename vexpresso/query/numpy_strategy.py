@@ -50,7 +50,6 @@ class NumpyStrategy(QueryStrategy):
         self,
         query_embeddings: np.array,
         embeddings: np.array,
-        ids: Iterable[Any],
         k: int = 1,
     ) -> QueryOutput:
         similarities = self.distance_fn(query_embeddings, embeddings)
@@ -60,16 +59,12 @@ class NumpyStrategy(QueryStrategy):
         top_indices = np.argsort(similarities, axis=-1)[:, -k:][::-1]  # B X k
 
         out_embeddings = []
-        out_ids = []
 
         for indices in top_indices:
             batch_embeddings = embeddings[indices]
-            batch_out_ids = [ids[idx] for idx in indices]
             out_embeddings.append(batch_embeddings)
-            out_ids.append(batch_out_ids)
 
         # fix batch size if not batched
         out_embeddings = np.squeeze(np.stack(batch_embeddings))
-        if len(out_ids) == 1:
-            out_ids = out_ids[0]
-        return QueryOutput(out_embeddings, out_ids, query_embeddings)
+        out_indices = np.squeeze(top_indices)
+        return QueryOutput(out_embeddings, out_indices, query_embeddings)

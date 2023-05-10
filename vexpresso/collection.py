@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Union, List
 
 import numpy as np
 
@@ -12,46 +12,74 @@ from vexpresso.strategy import NumpyStrategy
 class Collection:
     def __init__(
         self,
-        embeddings: Union[np.array, Embeddings],
+        content: Iterable[Any] = None,
+        embeddings: Union[np.array, Embeddings] = None,
         ids: Optional[Iterable[Any]] = None,
         embedding_fn: Callable[[Any], np.array] = None,
         lookup_strategy: QueryStrategy = NumpyStrategy(),
     ):
+        self.ids = ids
         self.embeddings = embeddings
-        if isinstance(embeddings, np.ndarray):
-            if ids is None:
-                ids = list(range(embeddings.shape[0]))
-            self.embeddings = Embeddings(embeddings, ids, embedding_fn, lookup_strategy)
 
-    @classmethod
-    def from_embeddings(cls, embeddings: Embeddings, *args, **kwargs) -> Collection:
-        return Collection(
-            embeddings.embeddings,
-            embeddings.ids,
-            embeddings.embedding_fn,
-            embeddings.lookup_strategy,
-            *args,
-            **kwargs,
-        )
+        # if embeddings is not provided or if a numpy array is provided
+        if self.embeddings is None or isinstance(self.embeddings, np.ndarray):
+            self.embeddings = Embeddings(content, self.embeddings, embedding_fn, lookup_strategy)
+
+        if content is not None:
+            # set content
+            self.embeddings.content = content
+
+        if self.ids is None:
+            self.ids = list(range(len(self.embeddings)))
+
+        self.assert_data_types()
+
+    def assert_data_types(self):
+        # TODO: probably improve this or remove this logic entirely
+        if not isinstance(self.embeddings, Embeddings):
+            raise ValueError("embeddings must either be provided as a numpy array or as an Embeddings object")
+
+    @property
+    def content(self) -> List[Any]:
+        return self.embeddings.content
+
+    @property
+    def embedding_fn(self):
+        return self.embeddings.embedding_fn
+
+    @property
+    def lookup_strategy(self):
+        return self.embeddings.lookup_strategy
+
+    @property
+    def embedding_vectors(self):
+        return self.embeddings.embeddings
 
     def query(
         self,
-        query: Iterable[Any] = None,
-        query_embedding: Optional[Iterable[Any]] = None,
-        batch: bool = False,
+        query: List[Any] = None,
+        query_embedding: Optional[np.ndarray] = None,
         return_collection: bool = True,
         *args,
         **kwargs,
     ) -> Union[Collection, QueryOutput]:
         query_output = self.embeddings.query(
-            query, query_embedding, batch, *args, **kwargs
+            query, query_embedding, *args, **kwargs
         )
         if return_collection:
+            content = [self.content[idx] for idx in indices]
             embeddings = Embeddings(
+                content,
                 query_output.embeddings,
-                query_output.ids,
-                self.embeddings.embedding_fn,
-                self.embeddings.lookup_strategy,
+                self.embedding_fn,
+                self.lookup_strategy,
             )
-            return Collection.from_embeddings(embeddings)
+            indices = query_output.indices
+            content = [content[idx] for idx in indices]
+            ids = [ids[idx] for idx in indices]
+            return Collection(
+                content,
+                embeddings,
+                ids,
+            )
         return query_output
