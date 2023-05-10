@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Union, List
+from typing import Any, Callable, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -13,9 +13,9 @@ class Collection:
     def __init__(
         self,
         content: Iterable[Any] = None,
-        embeddings: Union[np.array, Embeddings] = None,
+        embeddings: Union[np.ndarray, Embeddings] = None,
         ids: Optional[Iterable[Any]] = None,
-        embedding_fn: Callable[[Any], np.array] = None,
+        embedding_fn: Callable[[Any], np.ndarray] = None,
         lookup_strategy: QueryStrategy = NumpyStrategy(),
     ):
         self.ids = ids
@@ -23,7 +23,9 @@ class Collection:
 
         # if embeddings is not provided or if a numpy array is provided
         if self.embeddings is None or isinstance(self.embeddings, np.ndarray):
-            self.embeddings = Embeddings(content, self.embeddings, embedding_fn, lookup_strategy)
+            self.embeddings = Embeddings(
+                content, self.embeddings, embedding_fn, lookup_strategy
+            )
 
         if content is not None:
             # set content
@@ -37,7 +39,9 @@ class Collection:
     def assert_data_types(self):
         # TODO: probably improve this or remove this logic entirely
         if not isinstance(self.embeddings, Embeddings):
-            raise ValueError("embeddings must either be provided as a numpy array or as an Embeddings object")
+            raise ValueError(
+                "embeddings must either be provided as a numpy array or as an Embeddings object"
+            )
 
     @property
     def content(self) -> List[Any]:
@@ -63,13 +67,9 @@ class Collection:
         *args,
         **kwargs,
     ) -> Union[Collection, QueryOutput]:
-        query_output = self.embeddings.query(
-            query, query_embedding, *args, **kwargs
-        )
+        query_output = self.embeddings.query(query, query_embedding, *args, **kwargs)
         if return_collection:
-            content = [self.content[idx] for idx in indices]
             embeddings = Embeddings(
-                content,
                 query_output.embeddings,
                 self.embedding_fn,
                 self.lookup_strategy,

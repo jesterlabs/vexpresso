@@ -12,8 +12,8 @@ class Embeddings:
     def __init__(
         self,
         content: List[Any] = None,
-        embeddings: Optional[np.array] = None,
-        embedding_fn: Optional[Callable[[Any], np.array]] = None,
+        embeddings: Optional[np.ndarray] = None,
+        embedding_fn: Optional[Callable[[Any], np.ndarray]] = None,
         lookup_strategy: QueryStrategy = NumpyStrategy(),
     ):
         self.content = content
@@ -57,12 +57,16 @@ class Embeddings:
         query_output = self.lookup_strategy.query(
             query_embedding, self.embeddings, *args, **kwargs
         )
-        # filter conntent
+        # filter content
         # TODO: make this work for batched scenarios
         query_output.content = [self.content[idx] for idx in query_output.indices]
         return query_output
 
-    def add(self, content: Optional[List[Any]] = None, embeddings: Optional[np.array] = None):
+    def add(
+        self,
+        content: Optional[List[Any]] = None,
+        embeddings: Optional[np.ndarray] = None,
+    ):
         if content is None and embeddings is None:
             raise ValueError("Either content or embeddings must be specified!")
         if content is not None:
