@@ -1,5 +1,6 @@
 import abc
 from dataclasses import dataclass
+from tarfile import SUPPORTED_TYPES
 from typing import Any, Iterable, List, Optional, Union
 
 import numpy as np
@@ -16,6 +17,9 @@ class QueryOutput:
 
 
 class QueryStrategy(metaclass=abc.ABCMeta):
+
+    SUPPORTED_TYPES = [np.dtype]
+
     @abc.abstractmethod
     def query(
         self, query_embedding: np.ndarray, embeddings: np.ndarray, *args, **kwargs
@@ -32,3 +36,32 @@ class QueryStrategy(metaclass=abc.ABCMeta):
             Union[List[QueryOutput], QueryOutput]: dataclasses containing returned embeddings and corresponding indices.
             When this has more than one entry, that means that the call was batched
         """
+
+
+class KNNStrategy:
+
+    def torch_retrieve():
+        ...
+
+    def numpy_retrieve():
+        ...
+
+
+class NumpyEmbeddings:
+    def knn_retrieve():
+        ...
+
+class TorchEmbeddings:
+    def knn_retrieve():
+        ...
+
+
+class SVM:
+
+    def __init__(self, embeddings):
+        self.svm = SVMModel.train(embeddings)
+
+    def query(query, embeddings):
+        self.svm.classify(query, embeddings)
+
+

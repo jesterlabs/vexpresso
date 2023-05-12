@@ -2,6 +2,8 @@ from vexpresso.collection import Collection
 import numpy as np
 from vexpresso.query import NumpyQueryStrategy
 
+seed = np.random.seed(1337)
+
 def mock_embedding_function(texts):
     o = []
     for text in texts:
@@ -15,7 +17,9 @@ def mock_embedding_function(texts):
 
 texts = [f"test{i}" for i in range(100)]
 
-print("EUCLIDIAN")
+random_ints = np.random.randint(10, size=(len(texts),))
+
+metadata = {"ints":random_ints}
 
 embeddings = mock_embedding_function(texts)
 
@@ -25,8 +29,11 @@ collection = Collection(
     content=texts,
     embeddings=embeddings,
     embedding_fn=mock_embedding_function,
-    query_strategy=strategy
+    query_strategy=strategy,
+    metadata=metadata
 )
+
+print(collection.get(where="ints in (3,4)").metadata.metadata)
 
 query_output = collection.query(query=["test1"], k=3)
 print(query_output.ids)
@@ -56,7 +63,7 @@ collection = Collection(
 )
 
 query_output = collection.query(query=["test1"], k=3)
-print(query_output.ids)
+print("FIRST_ID", query_output.ids)
 
 embedding = mock_embedding_function(["test3"])
 

@@ -51,6 +51,8 @@ class NumpyQueryStrategy(QueryStrategy):
         embeddings: np.ndarray,
         k: int = 1,
     ):
+        if not is_batched(query_embeddings):
+            query_embeddings = np.expand_dims(query_embeddings, axis=0)
         similarities = self.similarity_fn(query_embeddings, embeddings)
         if not is_batched(similarities):
             similarities = np.expand_dims(similarities, 0)
@@ -65,15 +67,12 @@ class NumpyQueryStrategy(QueryStrategy):
         embeddings: np.ndarray,
         k: int = 4,
     ) -> Union[List[QueryOutput], QueryOutput]:
-        if not is_batched(query_embeddings):
-            query_embeddings = np.expand_dims(query_embeddings, axis=0)
         top_indices = self._get_top_k(query_embeddings, embeddings, k)
         # move to list for consistency w/ single and batch calls
         out = []
         for indices in top_indices:
             query_output = QueryOutput(embeddings[indices], indices, query_embeddings)
             out.append(query_output)
-
         if len(out) == 1:
             return out[0]
         return out
