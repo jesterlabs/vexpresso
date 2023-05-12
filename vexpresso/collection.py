@@ -4,9 +4,9 @@ from typing import Any, Callable, Iterable, List, Optional, Union
 
 import numpy as np
 
+from vexpresso.embedding_function import EmbeddingFunction
 from vexpresso.embeddings import Embeddings
-from vexpresso.query import QueryOutput, QueryStrategy
-from vexpresso.strategy import NumpyStrategy
+from vexpresso.query import NumpyQueryStrategy, QueryOutput, QueryStrategy
 
 
 class Collection:
@@ -15,21 +15,23 @@ class Collection:
         content: Iterable[Any] = None,
         embeddings: Union[np.ndarray, Embeddings] = None,
         ids: Optional[Iterable[Any]] = None,
-        embedding_fn: Callable[[Any], np.ndarray] = None,
-        lookup_strategy: QueryStrategy = NumpyStrategy(),
+        embedding_fn: Union[
+            EmbeddingFunction, Callable[[Iterable[Any]], np.ndarray]
+        ] = None,
+        query_strategy: QueryStrategy = NumpyQueryStrategy(),
     ):
-        self.ids = ids
+        self.content = content
         self.embeddings = embeddings
+        self.ids = ids
 
         # if embeddings is not provided or if a numpy array is provided
         if self.embeddings is None or isinstance(self.embeddings, np.ndarray):
             self.embeddings = Embeddings(
-                content, self.embeddings, embedding_fn, lookup_strategy
+                self.embeddings, embedding_fn, query_strategy, self.content
             )
 
-        if content is not None:
-            # set content
-            self.embeddings.content = content
+        if self.content is None:
+            self.content = [None for _ in range(len(self.embeddings))]
 
         if self.ids is None:
             self.ids = list(range(len(self.embeddings)))
@@ -43,21 +45,57 @@ class Collection:
                 "embeddings must either be provided as a numpy array or as an Embeddings object"
             )
 
-    @property
-    def content(self) -> List[Any]:
-        return self.embeddings.content
+    def __len__(self) -> int:
+        return len(self.embeddings)
 
     @property
     def embedding_fn(self):
         return self.embeddings.embedding_fn
 
     @property
-    def lookup_strategy(self):
-        return self.embeddings.lookup_strategy
+    def query_strategy(self):
+        return self.embeddings.query_strategy
 
     @property
     def embedding_vectors(self):
-        return self.embeddings.embeddings
+        return self.embeddings.embedding_vectors
+
+    def __getitem__(self, key) -> Collection:
+        if isinstance(key, int):
+            return self._getitem(key)
+        elif isinstance(key, slice):
+            return self._getslice(key)
+        elif isinstance(key, Iterable):
+            return self._getiterable(key)
+        else:
+            raise TypeError("Index must be int, not {}".format(type(key).__name__))
+
+    def _getitem(self, idx: int) -> Collection:
+        return Collection(
+            self.content[idx : idx + 1],
+            self.embeddings[idx],
+            self.ids[idx : idx + 1],
+            self.embedding_fn,
+            self.query_strategy,
+        )
+
+    def _getiterable(self, indices: Iterable[int]) -> Collection:
+        return Collection(
+            [self.content[idx] for idx in indices],
+            self.embeddings[indices],
+            [self.ids[idx] for idx in indices],
+            self.embedding_fn,
+            self.query_strategy,
+        )
+
+    def _getslice(self, index_slice: slice) -> Collection:
+        return Collection(
+            self.content[index_slice.start : index_slice.stop],
+            self.embeddings[index_slice],
+            self.ids[index_slice.start : index_slice.stop],
+            self.embedding_fn,
+            self.query_strategy,
+        )
 
     def query(
         self,
@@ -66,20 +104,21 @@ class Collection:
         return_collection: bool = True,
         *args,
         **kwargs,
-    ) -> Union[Collection, QueryOutput]:
+    ) -> Union[Collection, QueryOutput, List[Collection], List[QueryOutput]]:
         query_output = self.embeddings.query(query, query_embedding, *args, **kwargs)
-        if return_collection:
-            embeddings = Embeddings(
-                query_output.embeddings,
-                self.embedding_fn,
-                self.lookup_strategy,
-            )
-            indices = query_output.indices
-            content = [content[idx] for idx in indices]
-            ids = [ids[idx] for idx in indices]
-            return Collection(
-                content,
-                embeddings,
-                ids,
-            )
-        return query_output
+
+        if not return_collection:
+            return query_output
+
+        if isinstance(query_output, QueryOutput):
+            # not batched
+            return self[query_output.indices]
+
+        if len(query_output) == 0:
+            return self[query_output[0].indices]
+
+        # batched calls
+        collection_list = []
+        for q in query_output:
+            collection_list.append(self[q.indices])
+        return collection_list

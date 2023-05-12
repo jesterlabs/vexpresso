@@ -1,8 +1,8 @@
-from typing import Any, Iterable
+from typing import List, Union
 
 import numpy as np
 
-from vexpresso.query.strategy import BatchedQueryOutput, QueryOutput, QueryStrategy
+from vexpresso.query.strategy import QueryOutput, QueryStrategy
 
 
 def is_batched(arr: np.ndarray) -> bool:
@@ -20,15 +20,14 @@ def get_norm_vector(vector: np.ndarray) -> np.array:
 def cosine_similarity(query_vector, vectors):
     norm_vectors = get_norm_vector(vectors)
     norm_query_vector = get_norm_vector(query_vector)
-    similarities = np.dot(norm_vectors, norm_query_vector.T)
+    similarities = np.dot(norm_query_vector, norm_vectors.T)
     return similarities
 
 
 def euclidean_metric(query_vector, vectors, get_similarity_score=True):
-    if not is_batched(query_vector):
-        similarities = np.linalg.norm(vectors - query_vector, axis=1)
-    else:
-        similarities = np.linalg.norm(vectors - query_vector[:, np.newaxis], axis=1)
+    similarities = np.linalg.norm(
+        vectors[np.newaxis, :, :] - query_vector[:, np.newaxis, :], axis=-1
+    )
     if get_similarity_score:
         similarities = 1 / (1 + similarities)
     return similarities
@@ -39,11 +38,11 @@ def get_similarity_fn(name: str):
         "euclidian": euclidean_metric,
         "cosine": cosine_similarity,
     }  # prolly move this to enums
-    return functions.get(name, "euclidian")
+    return functions.get(name, functions["euclidian"])
 
 
-class NumpyStrategy(QueryStrategy):
-    def __init__(self, similarity_fn: str = "euclidian"):
+class NumpyQueryStrategy(QueryStrategy):
+    def __init__(self, similarity_fn: str = "cosine"):
         self.similarity_fn = get_similarity_fn(similarity_fn)
 
     def _get_top_k(
@@ -52,32 +51,29 @@ class NumpyStrategy(QueryStrategy):
         embeddings: np.ndarray,
         k: int = 1,
     ):
-        similarities = self.distance_fn(query_embeddings, embeddings)
+        similarities = self.similarity_fn(query_embeddings, embeddings)
         if not is_batched(similarities):
-            similarities = np.expand_dims(similarities, axis=0)
-        top_indices = np.argsort(similarities, axis=-1)[:, -k:][::-1]  # B X k
+            similarities = np.expand_dims(similarities, 0)
+        top_indices = np.flip(
+            np.argsort(similarities, axis=-1)[:, -k:], axis=-1
+        )  # B X k
         return top_indices
 
     def query(
         self,
-        query_embedding: np.ndarray,
+        query_embeddings: np.ndarray,
         embeddings: np.ndarray,
-        k: int = 1,
-    ) -> QueryOutput:
-        top_indices = np.squeeze(self._get_top_k(query_embedding, embeddings, k))
-        return QueryOutput(embeddings[top_indices], top_indices, query_embedding)
-
-    def batch_query(
-        self, query_embeddings: np.ndarray, embeddings: np.ndarray, k: int = 1
-    ) -> BatchedQueryOutput:
+        k: int = 4,
+    ) -> Union[List[QueryOutput], QueryOutput]:
+        if not is_batched(query_embeddings):
+            query_embeddings = np.expand_dims(query_embeddings, axis=0)
         top_indices = self._get_top_k(query_embeddings, embeddings, k)
-
-        out_embeddings = []
-
+        # move to list for consistency w/ single and batch calls
+        out = []
         for indices in top_indices:
-            batch_embeddings = embeddings[indices]
-            out_embeddings.append(batch_embeddings)
+            query_output = QueryOutput(embeddings[indices], indices, query_embeddings)
+            out.append(query_output)
 
-        out_embeddings = np.squeeze(np.stack(batch_embeddings))
-        out_indices = np.squeeze(top_indices)
-        return BatchedQueryOutput(out_embeddings, out_indices, query_embeddings)
+        if len(out) == 1:
+            return out[0]
+        return out
