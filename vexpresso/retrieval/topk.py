@@ -2,7 +2,7 @@ from typing import List, Union
 
 import numpy as np
 
-from vexpresso.query.strategy import QueryOutput, QueryStrategy
+from vexpresso.retrieval.strategy import RetrievalOutput, RetrievalStrategy
 
 
 def is_batched(arr: np.ndarray) -> bool:
@@ -41,7 +41,7 @@ def get_similarity_fn(name: str):
     return functions.get(name, functions["euclidian"])
 
 
-class NumpyQueryStrategy(QueryStrategy):
+class TopKRetrievalStrategy(RetrievalStrategy):
     def __init__(self, similarity_fn: str = "cosine"):
         self.similarity_fn = get_similarity_fn(similarity_fn)
 
@@ -61,17 +61,19 @@ class NumpyQueryStrategy(QueryStrategy):
         )  # B X k
         return top_indices
 
-    def query(
+    def retrieve(
         self,
         query_embeddings: np.ndarray,
         embeddings: np.ndarray,
         k: int = 4,
-    ) -> Union[List[QueryOutput], QueryOutput]:
+    ) -> Union[List[RetrievalOutput], RetrievalOutput]:
         top_indices = self._get_top_k(query_embeddings, embeddings, k)
         # move to list for consistency w/ single and batch calls
         out = []
         for indices in top_indices:
-            query_output = QueryOutput(embeddings[indices], indices, query_embeddings)
+            query_output = RetrievalOutput(
+                embeddings[indices], indices, query_embeddings
+            )
             out.append(query_output)
         if len(out) == 1:
             return out[0]

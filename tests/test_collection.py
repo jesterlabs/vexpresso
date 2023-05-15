@@ -1,6 +1,6 @@
 from vexpresso.collection import Collection
 import numpy as np
-from vexpresso.query import NumpyQueryStrategy
+from vexpresso.retrieval import TopKRetrievalStrategy
 
 seed = np.random.seed(1337)
 
@@ -23,55 +23,73 @@ metadata = {"ints":random_ints}
 
 embeddings = mock_embedding_function(texts)
 
-strategy = NumpyQueryStrategy("euclidian")
+strategy = TopKRetrievalStrategy("euclidian")
 
 collection = Collection(
     content=texts,
     embeddings=embeddings,
     embedding_fn=mock_embedding_function,
-    query_strategy=strategy,
+    retrieval_strategy=strategy,
     metadata=metadata
 )
 
-print(collection.get(where="ints in (3,4)").metadata.metadata)
 
-query_output = collection.query(query=["test1"], k=3)
-print(query_output.ids)
+def test_query(collection, query = None, query_embedding = None, k=3):
+    print("==========================   test_query   ==========================")
+    print(f"query: {query}")
+    if query_embedding is not None:
+        print(f"query_embedding: {query_embedding.shape}")
+        query = None
+    else:
+        print(f"query_embedding: {None}")
+    out = collection.query(query=query, query_embedding=query_embedding, k=k)
+    print(out.content)
+    print("========================== end test_query ==========================")
 
-embedding = mock_embedding_function(["test3"])
+test_query(collection, ["test1"], None, 3)
 
-query_output = collection.query(query_embedding=embedding, k=3)
-print(query_output.ids)
+test_query(collection, ["test3"], mock_embedding_function(["test3"]), 3)
 
-query_output = collection.query(query=texts, k=3)
-print(query_output[-1].ids)
 
-query_output = collection.query(query=embeddings, k=3)
-print(query_output[-1].ids)
+# print(collection.where("ints", [3,4]))
 
-print("COSINE")
+# query_output = collection.query(query=["test1"], k=3)
+# print(query_output.content)
 
-embeddings = mock_embedding_function(texts)
+# embedding = mock_embedding_function(["test3"])
 
-strategy = NumpyQueryStrategy("cosine")
+# query_output = collection.query(query_embedding=embedding, k=3)
+# print(query_output.content)
 
-collection = Collection(
-    content=texts,
-    embeddings=embeddings,
-    embedding_fn=mock_embedding_function,
-    query_strategy=strategy
-)
+# query_output = collection.query(query=texts, k=3)
+# print(query_output[-1].content)
 
-query_output = collection.query(query=["test1"], k=3)
-print("FIRST_ID", query_output.ids)
+# query_output = collection.query(query=embeddings, k=3)
+# print(query_output[-1].content)
 
-embedding = mock_embedding_function(["test3"])
+# print("COSINE")
 
-query_output = collection.query(query_embedding=embedding, k=3)
-print(query_output.ids)
+# embeddings = mock_embedding_function(texts)
 
-query_output = collection.query(query=embeddings, k=3)
-print(query_output[-1].ids)
+# strategy = TopKRetrievalStrategy("cosine")
 
-query_output = collection.query(query=texts, k=3)
-print(query_output[-1].ids)
+# collection = Collection(
+#     content=texts,
+#     embeddings=embeddings,
+#     embedding_fn=mock_embedding_function,
+#     retrieval_strategy=strategy,
+# )
+
+# query_output = collection.query(query=["test1"], k=3)
+# print("FIRST_ID", query_output.content)
+
+# embedding = mock_embedding_function(["test3"])
+
+# query_output = collection.query(query_embedding=embedding, k=3)
+# print(query_output.content)
+
+# query_output = collection.query(query=embeddings, k=3)
+# print(query_output[-1].content)
+
+# query_output = collection.query(query=texts, k=3)
+# print(query_output[-1].content)

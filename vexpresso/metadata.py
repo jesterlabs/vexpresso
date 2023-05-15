@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-import duckdb
 import pandas as pd
-from duckdb import DuckDBPyConnection
 
 
 # TODO: change this so we can have different storage backends. Right now we only have pandas
@@ -12,14 +10,10 @@ class Metadata:
     def __init__(
         self,
         metadata: Union[pd.DataFrame, Dict[str, Any]],
-        con: Optional[DuckDBPyConnection] = None,
     ):
         self.metadata = metadata
         if isinstance(metadata, dict):
             self.metadata = pd.DataFrame(metadata)
-        self.con = con
-        if con is None:
-            self.con = duckdb.connect()
 
     @property
     def columns(self):
@@ -31,33 +25,8 @@ class Metadata:
                 return False
         return True
 
-    def index(self, key) -> Metadata:
-        if isinstance(key, int):
-            return self._getitemidx(key)
-        elif isinstance(key, slice):
-            return self._getslice(key)
-        elif isinstance(key, Iterable):
-            if self._check_arr_type(key, str):
-                return self._getitemstr(key)
-            return self._getiterable(key)
-        else:
-            raise TypeError(
-                "Index must be int, str, or iterable of ints or strings, not {}".format(
-                    type(key).__name__
-                )
-            )
-
-    def _getitemidx(self, idx: int) -> Metadata:
-        return Metadata(self.metadata.iloc[idx : idx + 1], self.con)
-
-    def _getitemstr(self, columns: Iterable[str]) -> Metadata:
-        return Metadata(self.metadata[columns], self.con)
-
-    def _getiterable(self, indices: Iterable[int]) -> Metadata:
-        return Metadata(self.metadata.iloc[indices], self.con)
-
-    def _getslice(self, index_slice: slice) -> Metadata:
-        return Metadata(self.metadata[index_slice.start : index_slice.stop], self.con)
+    def index(self, indices: Iterable[int]) -> Metadata:
+        return Metadata(self.metadata.iloc[indices])
 
     def make_empty_rows(self, num_rows: int = 1) -> Dict[str, Any]:
         columns = list(self.metadata.columns)
@@ -66,42 +35,43 @@ class Metadata:
             dicts.append({k: None for k in columns})
         return dicts
 
-    def where_in(
+    def get(self, variables: List[str]) -> List[Any]:
+        return [list(self.metadata[v]) for v in variables]
+
+    def where(
         self,
         column: str,
         values: List[Any],
         return_metadata: bool = True,
         return_indices: bool = False,
         not_in: bool = False,
-    ) -> Metadata:
-        # remove temp indices
-        self.metadata["vexpresso_index"] = list(range(self.metadata.shape[0]))
-        if not_in:
-            df = self.metadata.query(f"{column} not in {values}")
-        else:
-            df = self.metadata.query(f"{column} in {values}")
-        indices = df["vexpresso_index"]
-        # remove temp index
-        self.metadata = self.metadata.drop(columns=["vexpresso_index"])
-        df = df.drop(columns=["vexpresso_index"])
-
-        if return_metadata:
-            if return_indices:
-                return Metadata(df, self.con), indices
-            return Metadata(df, self.con)
-        if return_indices:
-            return df, indices
-        return df
-
-    def filter(
-        self, condition: str, return_metadata: bool = True, return_indices: bool = False
     ) -> Union[
         Union[Metadata, pd.DataFrame], Tuple[Union[Metadata, pd.DataFrame], List[int]]
     ]:
+        if not_in:
+            condition = f"{column} != @_query_values"
+        else:
+            condition = f"{column} == @_query_values"
+        return self.filter(
+            condition,
+            return_metadata=return_metadata,
+            return_indices=return_indices,
+            _query_values=values,
+        )
+
+    def filter(
+        self,
+        condition: str,
+        return_metadata: bool = True,
+        return_indices: bool = False,
+        **kwargs,
+    ) -> Union[
+        Union[Metadata, pd.DataFrame], Tuple[Union[Metadata, pd.DataFrame], List[int]]
+    ]:
+        _query_values = kwargs.get("_query_values", None)  # noqa
         # remove temp indices
         self.metadata["vexpresso_index"] = list(range(self.metadata.shape[0]))
-        rel = self.con.from_df(self.metadata)
-        df = rel.filter(condition).df()
+        df = self.metadata.query(condition)
         indices = df["vexpresso_index"]
 
         # remove temp index
@@ -115,14 +85,6 @@ class Metadata:
         if return_indices:
             return df, indices
         return df
-
-    def __add__(self, other: Metadata) -> Metadata:
-        metadata = pd.concat([self.metadata, other.metadata], ignore_index=True)
-        return Metadata(metadata, self.con)
-
-    def append(self, other: Metadata) -> Metadata:
-        self.metadata = pd.concat([self.metadata, other.metadata], ignore_index=True)
-        return self
 
     def add(
         self,

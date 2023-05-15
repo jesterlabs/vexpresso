@@ -1,49 +1,58 @@
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-import numpy as np
 import pandas as pd
 
 from vexpresso.embedding_function import EmbeddingFunction
 from vexpresso.embeddings import Embeddings
 from vexpresso.metadata import Metadata
-from vexpresso.query import NumpyQueryStrategy, QueryOutput, QueryStrategy
+from vexpresso.retrieval import (
+    RetrievalOutput,
+    RetrievalStrategy,
+    TopKRetrievalStrategy,
+)
+
+
+@dataclass
+class QueryOutput:
+    retrieval: RetrievalOutput
+    content: Optional[Any] = None
 
 
 class Collection:
     def __init__(
         self,
-        content: List[Any] = None,
-        embeddings: Union[np.ndarray, Embeddings] = None,
-        ids: Optional[List[str]] = None,
-        metadata: Optional[Union[pd.DataFrame, Metadata, Dict[str, Any]]] = None,
-        embedding_fn: Union[
-            EmbeddingFunction, Callable[[Iterable[Any]], np.ndarray]
-        ] = None,
-        query_strategy: QueryStrategy = NumpyQueryStrategy(),
+        content: Optional[List[Any]] = None,
+        embeddings: Optional[Any] = None,
+        metadata: Optional[Union[pd.DataFrame, Dict[str, Any], Metadata]] = None,
+        ids: Optional[List[int]] = None,
+        embedding_fn: Union[EmbeddingFunction, Callable[[Any], Any]] = None,
+        retrieval_strategy: RetrievalStrategy = TopKRetrievalStrategy(),
     ):
         self.content = content
         self.embeddings = embeddings
         self.metadata = metadata
-        self.query_strategy = query_strategy
+        self.embedding_fn = embedding_fn
+        self.retrieval_strategy = retrieval_strategy
 
-        if content is None and self.embeddings is None:
+        if self.content is None and self.embeddings is None:
             raise ValueError("Either content or embeddings must be specified!")
 
-        if content is not None:
+        if self.content is not None:
             if embeddings is None:
-                numpy_embeddings = self.embedding_fn(content)
-                self.embeddings = Embeddings(
-                    numpy_embeddings
-                )
+                raw_embeddings = self.embedding_fn(content)
+                self.embeddings = Embeddings(raw_embeddings)
 
-        # if embeddings is not provided or if a numpy array is provided
-        if self.embeddings is None or isinstance(self.embeddings, np.ndarray):
-            self.embeddings = Embeddings(
-                self.embeddings, embedding_fn, query_strategy, self.content
-            )
+        # if embeddings is not provided
+        if not isinstance(self.embeddings, Embeddings):
+            raw_embeddings = self.embeddings
+            self.embeddings = Embeddings(raw_embeddings)
+
+        if self.content is None:
+            self.content = [None for _ in range(len(self.embeddings))]
 
         if self.metadata is not None:
             if not isinstance(self.metadata, Metadata):
@@ -57,7 +66,6 @@ class Collection:
                 ids = [uuid.uuid4().hex for _ in range(len(self.embeddings))]
             ids_df = pd.DataFrame({"id": ids})
             self.metadata = Metadata(ids_df)
-
         self.assert_data_types()
 
     def assert_data_types(self):
@@ -67,15 +75,36 @@ class Collection:
                 "embeddings must either be provided as a numpy array or as an Embeddings object"
             )
 
-    def __add__(self, other: Collection) -> Collection:
-        content = self.content + other.content
-        embeddings = self.embeddings + other.embeddings
-        metadata = self.metadata + other.metadata
-        return Collection(
+    @property
+    def ids(self) -> List[Any]:
+        return self.metadata.get(["id"])[0]
+
+    def __len__(self) -> int:
+        """
+        Returns the size of the collection
+
+        Returns:
+            int: Size of collection.
+        """
+        return len(self.embeddings)
+
+    def add(
+        self,
+        content: List[Any] = None,
+        embeddings: Optional[Any] = None,
+        ids: Optional[List[str]] = None,
+        metadata: Optional[Union[pd.DataFrame, Metadata, Dict[str, Any]]] = None,
+    ) -> Collection:
+        """Add a collection"""
+        other = Collection(
             content=content,
             embeddings=embeddings,
+            ids=ids,
             metadata=metadata,
+            embedding_fn=self.embedding_fn,
+            retrieval_strategy=self.retrieval_strategy,
         )
+        return self.append(other)
 
     def append(self, other: Collection) -> Collection:
         self.content.extend(other.content)
@@ -83,128 +112,86 @@ class Collection:
         self.metadata = self.metadata.append(other.metadata)
         return self
 
-    def add(
-        self,
-        content: List[Any] = None,
-        embeddings: Union[np.ndarray, Embeddings] = None,
-        ids: Optional[List[Any]] = None,
-        metadata: Optional[Union[pd.DataFrame, Metadata]] = None,
-    ) -> Collection:
-        other = Collection(
-            content,
-            embeddings,
-            ids,
-            metadata,
-            embedding_fn=self.embedding_fn,
-            query_strategy=self.query_strategy,
-        )
-        self.append(other)
-        return self
-
-    def __len__(self) -> int:
-        return len(self.embeddings)
-
-    @property
-    def ids(self) -> List[str]:
-        return list(self.metadata.metadata["id"])
-
-    @property
-    def embedding_fn(self):
-        return self.embeddings.embedding_fn
-
-    @property
-    def embedding_vectors(self):
-        return self.embeddings.embedding_vectors
-
-    def index(self, key) -> Collection:
-        if isinstance(key, int):
-            return self._getitem(key)
-        elif isinstance(key, slice):
-            return self._getslice(key)
-        elif isinstance(key, Iterable):
-            return self._getiterable(key)
-        else:
-            raise TypeError("Index must be int, not {}".format(type(key).__name__))
-
-    def _getitem(self, idx: int) -> Collection:
-        return Collection(
-            content=self.content[idx : idx + 1],
-            embeddings=self.embeddings.index(idx),
-            metadata=self.metadata.index(idx),
-            embedding_fn=self.embedding_fn,
-            query_strategy=self.query_strategy,
-        )
-
-    def _getiterable(self, indices: Iterable[int]) -> Collection:
+    def index(self, indices: Iterable[int]) -> Collection:
         return Collection(
             content=[self.content[idx] for idx in indices],
             embeddings=self.embeddings.index(indices),
             metadata=self.metadata.index(indices),
             embedding_fn=self.embedding_fn,
-            query_strategy=self.query_strategy,
-        )
-
-    def _getslice(self, index_slice: slice) -> Collection:
-        return Collection(
-            content=self.content[index_slice.start : index_slice.stop],
-            embeddings=self.embeddings.index(index_slice),
-            metadata=self.metadata.index(index_slice),
-            embedding_fn=self.embedding_fn,
-            query_strategy=self.query_strategy,
+            retrieval_strategy=self.retrieval_strategy,
         )
 
     def query(
         self,
         query: List[Any] = None,
-        query_embedding: Optional[np.ndarray] = None,
+        query_embedding: Optional[Any] = None,
         return_collection: bool = True,
         *args,
         **kwargs,
     ) -> Union[Collection, QueryOutput, List[Collection], List[QueryOutput]]:
         if query_embedding is None:
             # TODO: maybe explicitly call batch function here?
-            query_embedding = self.embeddings.embedding_fn(query)
-        query_output = self.query_strategy.query(
-            query_embedding, self.embeddings.embedding_vectors, *args, **kwargs
+            query_embedding = self.embedding_fn(query)
+        retrieval_output = self.retrieval_strategy.retrieve(
+            query_embedding, self.embeddings.raw_embeddings, *args, **kwargs
         )
 
-        if not return_collection:
-            return query_output
-
-        if isinstance(query_output, QueryOutput):
+        if isinstance(retrieval_output, RetrievalOutput):
             # not batched
-            return self.index(query_output.indices)
+            if not return_collection:
+                return QueryOutput(
+                    retrieval_output,
+                    [self.content[idx] for idx in retrieval_output.indices],
+                )
+            return self.index(retrieval_output.indices)
 
-        if len(query_output) == 0:
-            return self.index(query_output[0].indices)
+        if len(retrieval_output) == 0:
+            if not return_collection:
+                return QueryOutput(
+                    retrieval_output[0],
+                    [self.content[idx] for idx in retrieval_output[0].indices],
+                )
+            return self.index(retrieval_output[0].indices)
+
+        if not return_collection:
+            query_output_list = []
+            for r in retrieval_output:
+                query_output = QueryOutput(r, [self.content[idx] for idx in r.indices])
+                query_output_list.append(query_output)
+            return query_output_list
 
         # batched calls
         collection_list = []
-        for q in query_output:
-            collection_list.append(self.index(q.indices))
+        for r in retrieval_output:
+            collection_list.append(self.index(r.indices))
         return collection_list
-
-    def where_in(
-        self,
-        not_in: bool = False,
-        **kwargs,
-    ):
-        if not_in:
-            
-        pass
 
     def get(
         self,
         indices: Optional[List[int]] = None,
         ids: Optional[List[str]] = None,
-        where: Optional[str] = None,
     ) -> Collection:
         collection = self
         if indices is not None:
-            collection = self.index(indices)
-        if where is not None:
-            _, indices = self.metadata.filter(
-                where, return_indices=True, return_metadata=False
+            collection = collection.index(indices)
+        if ids is not None:
+            _, indices = self.metadata.where(
+                column="id", values=ids, return_indices=True, return_metadata=False
             )
-            collection = self.index(indices)
+            collection = collection.index(indices)
         return collection
+
+    def where(
+        self,
+        column: str,
+        values: List[Any],
+        not_in: bool = False,
+    ) -> Collection:
+        _, indices = self.metadata.where(
+            column=column,
+            values=values,
+            return_indices=True,
+            return_metadata=False,
+            not_in=not_in,
+        )
+        return self.index(indices)
