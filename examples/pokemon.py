@@ -53,8 +53,8 @@ top_k.save("./sleepy_pokemon")
 
 # load top_k
 
-loaded_top_k = Collection.from_saved("./sleepy_pokemon")
+loaded_top_k = Collection(saved_path="./sleepy_pokemon", embedding_fn = embeddings_fn)
 
 print("Loaded!")
-for id, content in zip(top_k.ids[:3], top_k.content[:3]):
+for id, content in zip(top_k.ids, top_k.content):
     print(f"{id} -- {content}")

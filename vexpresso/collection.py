@@ -34,12 +34,16 @@ class Collection:
         ids: Optional[List[int]] = None,
         embedding_fn: Union[EmbeddingFunction, Callable[[Any], Any], Any] = None,
         retrieval_strategy: RetrievalStrategy = TopKRetrievalStrategy(),
+        saved_path: Optional[str] = None,
     ):
         self.content = content
         self.embeddings = embeddings
         self.metadata = metadata
         self.embedding_fn = embedding_fn
         self.retrieval_strategy = retrieval_strategy
+
+        if saved_path is not None:
+            self.load(saved_path)
 
         if not isinstance(self.embedding_fn, EmbeddingFunction):
             self.embedding_fn = EmbeddingFunction(self.embedding_fn)
@@ -48,8 +52,8 @@ class Collection:
             raise ValueError("Either content or embeddings must be specified!")
 
         if self.content is not None:
-            if embeddings is None:
-                raw_embeddings = self.embedding_fn.batch_embed(content)
+            if self.embeddings is None:
+                raw_embeddings = self.embedding_fn.batch_embed(self.content)
                 self.embeddings = Embeddings(raw_embeddings)
 
         # if embeddings is not provided
@@ -234,8 +238,16 @@ class Collection:
     def load(self, path: str):
         with open(os.path.join(path, "content.pkl"), mode="rb") as file:
             self.content = cloudpickle.load(file)
-        self.embeddings.load(path)
-        self.metadata.load(path)
+
+        if self.embeddings is not None:
+            self.embeddings.load(path)
+        else:
+            self.embeddings = Embeddings(saved_path=path)
+
+        if self.metadata is not None:
+            self.metadata.load(path)
+        else:
+            self.metadata = Metadata(saved_path=path)
 
     @classmethod
     def from_saved(
