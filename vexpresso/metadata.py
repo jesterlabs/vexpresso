@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import warnings
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -12,11 +13,15 @@ warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
 class Metadata:
     def __init__(
         self,
-        metadata: Union[pd.DataFrame, Dict[str, Any]],
+        metadata: Union[pd.DataFrame, Dict[str, Any]] = None,
+        saved_path: Optional[str] = None,
     ):
-        self.metadata = metadata
-        if isinstance(metadata, dict):
-            self.metadata = pd.DataFrame(metadata)
+        if saved_path is not None:
+            self.load(saved_path)
+        else:
+            self.metadata = metadata
+            if isinstance(metadata, dict):
+                self.metadata = pd.DataFrame(metadata)
 
     def df(self) -> pd.DataFrame:
         return self.metadata
@@ -110,3 +115,16 @@ class Metadata:
             metadata = pd.DataFrame(metadata)
         self.metadata = pd.concat([self.metadata, metadata], ignore_index=True)
         return self
+
+    def save(self, path: str, filename: Optional[str] = None) -> str:
+        if filename is None:
+            filename = "metadata.csv"
+        path = os.path.join(path, filename)
+        self.metadata.to_csv(path)
+        return path
+
+    def load(self, path: str, filename: Optional[str] = None):
+        if filename is None:
+            filename = "metadata.csv"
+        path = os.path.join(path, filename)
+        self.metadata = pd.read_csv(path)

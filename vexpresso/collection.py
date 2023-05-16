@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import os
 import uuid
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
+import cloudpickle
 import pandas as pd
 
+import vexpresso  # noqa
 from vexpresso.embedding_function import EmbeddingFunction
 from vexpresso.embeddings import Embeddings
 from vexpresso.metadata import Metadata
@@ -220,3 +223,33 @@ class Collection:
             **kwargs,
         )
         return self.index(indices)
+
+    def save(self, path: str):
+        os.makedirs(path, exist_ok=True)
+        with open(os.path.join(path, "content.pkl"), mode="wb") as file:
+            cloudpickle.dump(self.content, file)
+        self.embeddings.save(path)
+        self.metadata.save(path)
+
+    def load(self, path: str):
+        with open(os.path.join(path, "content.pkl"), mode="rb") as file:
+            self.content = cloudpickle.load(file)
+        self.embeddings.load(path)
+        self.metadata.load(path)
+
+    @classmethod
+    def from_saved(
+        cls,
+        path,
+        embedding_kwargs: Dict[str, Any] = {},
+        metadata_kwargs: Dict[str, Any] = {},
+        *args,
+        **kwargs,
+    ) -> Collection:
+        with open(os.path.join(path, "content.pkl"), mode="rb") as file:
+            content = cloudpickle.load(file)
+        embeddings = Embeddings(saved_path=path)
+        metadata = Metadata(saved_path=path)
+        return cls(
+            content=content, embeddings=embeddings, metadata=metadata, *args, **kwargs
+        )

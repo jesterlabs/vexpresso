@@ -18,8 +18,8 @@ names = list(df["name"])
 names = [name["english"] for name in names]
 df["type"] = df["type"].astype(str) # convert list to string
 
-# using langchain embeddings function
-# for setup, check out https://python.langchain.com/en/latest/ecosystem/huggingface.html.
+# # using langchain embeddings function
+# # for setup, check out https://python.langchain.com/en/latest/ecosystem/huggingface.html.
 embeddings_fn = HuggingFaceHubEmbeddings()
 
 collection = Collection(
@@ -37,7 +37,6 @@ for id, content in zip(top_k.ids, top_k.content):
     print(f"{id} -- {content}")
 print("===================================")
 
-
 # get df from top_k
 df = top_k.metadata.df()
 
@@ -46,3 +45,16 @@ print("Filtering for psychic type sleepy pokemon")
 filter_condition = "type.str.contains('Psychic')"
 filtered = top_k.filter(filter_condition)
 print(filtered.ids)
+
+
+# save top_k
+print("saving to ./sleepy_pokemon...")
+top_k.save("./sleepy_pokemon")
+
+# load top_k
+
+loaded_top_k = Collection.from_saved("./sleepy_pokemon")
+
+print("Loaded!")
+for id, content in zip(top_k.ids[:3], top_k.content[:3]):
+    print(f"{id} -- {content}")
