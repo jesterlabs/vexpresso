@@ -76,6 +76,7 @@ class Collection:
                 ids = [uuid.uuid4().hex for _ in range(len(self.embeddings))]
             ids_df = pd.DataFrame({"vexpresso_id": ids})
             self.metadata = Metadata(ids_df)
+
         self.assert_data_types()
 
     def assert_data_types(self):

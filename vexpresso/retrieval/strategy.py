@@ -1,15 +1,15 @@
 import abc
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Union
 
 import numpy as np
 
 
 @dataclass
 class RetrievalOutput:
-    embeddings: np.ndarray
+    embeddings: Any
     indices: Union[np.ndarray, Iterable[int]]
-    query_embeddings: Optional[np.ndarray] = None
+    query_embeddings: Optional[Any] = None
 
 
 class RetrievalStrategy(metaclass=abc.ABCMeta):

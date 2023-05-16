@@ -2,7 +2,7 @@ import json
 import pandas as pd
 from langchain.embeddings import HuggingFaceHubEmbeddings
 from vexpresso.collection import Collection
-
+from vexpresso.retrieval import FaissRetrievalStrategy
 
 with open("./data/pokedex.json", "r") as f:
     documents = json.load(f)
@@ -26,7 +26,8 @@ collection = Collection(
     content = content,
     ids = names,
     embedding_fn = embeddings_fn,
-    metadata = df
+    metadata = df,
+    retrieval_strategy=FaissRetrievalStrategy()
 )
 
 print("Query: Loves to sleep")
