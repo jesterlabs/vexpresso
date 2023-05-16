@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Any, Iterable, Union
 
 import numpy as np
 
@@ -9,12 +9,19 @@ import numpy as np
 class Embeddings:
     def __init__(
         self,
-        raw_embeddings: Optional[np.ndarray] = None,
+        raw_embeddings: Iterable[Any],
     ):
         self.raw_embeddings = raw_embeddings
+        if not isinstance(raw_embeddings, np.ndarray):
+            self.raw_embeddings = np.array(raw_embeddings)  # naive way of conversion
         self.raw_embeddings = self.post_process_embeddings(self.raw_embeddings)
 
+    @classmethod
+    def from_raw(cls, raw_embeddings: Iterable[Any], *args, **kwargs):
+        return cls(raw_embeddings, *args, **kwargs)
+
     def post_process_embeddings(self, raw_embeddings: np.ndarray) -> np.ndarray:
+        raw_embeddings = np.squeeze(raw_embeddings)
         if len(raw_embeddings.shape) == 1:
             return np.expand_dims(raw_embeddings, axis=0)
         return raw_embeddings
@@ -25,13 +32,12 @@ class Embeddings:
         )
         return self
 
-    def add(
-        self,
-        raw_embeddings: Optional[np.ndarray] = None,
-    ) -> Embeddings:
-        other = Embeddings(
-            raw_embeddings=raw_embeddings,
-        )
+    def add(self, embeddings: Union[Any, Embeddings]) -> Embeddings:
+        other = embeddings
+        if not isinstance(embeddings, Embeddings):
+            other = Embeddings(
+                raw_embeddings=embeddings,
+            )
         self.append(other)
         return self
 

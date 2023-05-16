@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import warnings
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
+
+warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
 
 
 # TODO: change this so we can have different storage backends. Right now we only have pandas
@@ -14,6 +17,9 @@ class Metadata:
         self.metadata = metadata
         if isinstance(metadata, dict):
             self.metadata = pd.DataFrame(metadata)
+
+    def df(self) -> pd.DataFrame:
+        return self.metadata
 
     @property
     def columns(self):
@@ -44,6 +50,7 @@ class Metadata:
         values: List[Any],
         return_metadata: bool = True,
         return_indices: bool = False,
+        query_kwargs: Dict[str, Any] = {},
         not_in: bool = False,
     ) -> Union[
         Union[Metadata, pd.DataFrame], Tuple[Union[Metadata, pd.DataFrame], List[int]]
@@ -56,6 +63,7 @@ class Metadata:
             condition,
             return_metadata=return_metadata,
             return_indices=return_indices,
+            query_kwargs=query_kwargs,
             _query_values=values,
         )
 
@@ -64,6 +72,7 @@ class Metadata:
         condition: str,
         return_metadata: bool = True,
         return_indices: bool = False,
+        query_kwargs: Dict[str, Any] = {},
         **kwargs,
     ) -> Union[
         Union[Metadata, pd.DataFrame], Tuple[Union[Metadata, pd.DataFrame], List[int]]
@@ -71,7 +80,7 @@ class Metadata:
         _query_values = kwargs.get("_query_values", None)  # noqa
         # remove temp indices
         self.metadata["vexpresso_index"] = list(range(self.metadata.shape[0]))
-        df = self.metadata.query(condition)
+        df = self.metadata.query(condition, **query_kwargs)
         indices = df["vexpresso_index"]
 
         # remove temp index

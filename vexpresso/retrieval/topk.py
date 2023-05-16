@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List
 
 import numpy as np
 
@@ -38,12 +38,24 @@ def get_similarity_fn(name: str):
         "euclidian": euclidean_metric,
         "cosine": cosine_similarity,
     }  # prolly move this to enums
-    return functions.get(name, functions["euclidian"])
+    return functions.get(name, functions["cosine"])
 
 
 class TopKRetrievalStrategy(RetrievalStrategy):
     def __init__(self, similarity_fn: str = "cosine"):
         self.similarity_fn = get_similarity_fn(similarity_fn)
+
+    def _get_similarities(
+        self,
+        query_embeddings: np.ndarray,
+        embeddings: np.ndarray,
+    ):
+        if not is_batched(query_embeddings):
+            query_embeddings = np.expand_dims(query_embeddings, axis=0)
+        similarities = self.similarity_fn(query_embeddings, embeddings)
+        if not is_batched(similarities):
+            similarities = np.expand_dims(similarities, 0)
+        return similarities
 
     def _get_top_k(
         self,
@@ -51,11 +63,7 @@ class TopKRetrievalStrategy(RetrievalStrategy):
         embeddings: np.ndarray,
         k: int = 1,
     ):
-        if not is_batched(query_embeddings):
-            query_embeddings = np.expand_dims(query_embeddings, axis=0)
-        similarities = self.similarity_fn(query_embeddings, embeddings)
-        if not is_batched(similarities):
-            similarities = np.expand_dims(similarities, 0)
+        similarities = self._get_similarities(query_embeddings, embeddings)
         top_indices = np.flip(
             np.argsort(similarities, axis=-1)[:, -k:], axis=-1
         )  # B X k
@@ -66,7 +74,7 @@ class TopKRetrievalStrategy(RetrievalStrategy):
         query_embeddings: np.ndarray,
         embeddings: np.ndarray,
         k: int = 4,
-    ) -> Union[List[RetrievalOutput], RetrievalOutput]:
+    ) -> List[RetrievalOutput]:
         top_indices = self._get_top_k(query_embeddings, embeddings, k)
         # move to list for consistency w/ single and batch calls
         out = []
@@ -75,6 +83,4 @@ class TopKRetrievalStrategy(RetrievalStrategy):
                 embeddings[indices], indices, query_embeddings
             )
             out.append(query_output)
-        if len(out) == 1:
-            return out[0]
         return out
