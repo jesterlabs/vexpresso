@@ -19,6 +19,7 @@ names = [name["english"] for name in names]
 df["type"] = df["type"].astype(str) # convert list to string
 
 # using langchain embeddings function
+# for setup, check out https://python.langchain.com/en/latest/ecosystem/huggingface.html.
 embeddings_fn = HuggingFaceHubEmbeddings()
 
 collection = Collection(
