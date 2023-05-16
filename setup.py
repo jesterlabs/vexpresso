@@ -29,6 +29,10 @@ setup(
     packages=find_packages(exclude=('tests',)),
 
     install_requires=[
+        'numpy',
+        'pandas',
+        'langchain',
+        'huggingface_hub',
     ],
 
     classifiers=[

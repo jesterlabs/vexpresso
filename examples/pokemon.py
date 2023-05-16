@@ -1,12 +1,6 @@
 import json
 import pandas as pd
-from langchain.embeddings import HuggingFaceEmbeddings
-import numpy as np
-from vexpresso.retrieval import (
-    RetrievalOutput,
-    RetrievalStrategy,
-    TopKRetrievalStrategy,
-)
+from langchain.embeddings import HuggingFaceHubEmbeddings
 from vexpresso.collection import Collection
 
 
@@ -25,7 +19,7 @@ names = [name["english"] for name in names]
 df["type"] = df["type"].astype(str) # convert list to string
 
 # using langchain embeddings function
-embeddings_fn = HuggingFaceEmbeddings()
+embeddings_fn = HuggingFaceHubEmbeddings()
 
 collection = Collection(
     content = content,
@@ -34,17 +28,20 @@ collection = Collection(
     metadata = df
 )
 
+print("Query: Loves to sleep")
+print("============ Results ==============")
 top_k = collection.query("Loves to sleep", k=10)
 
 for id, content in zip(top_k.ids, top_k.content):
     print(f"{id} -- {content}")
+print("===================================")
 
 
 # get df from top_k
 df = top_k.metadata.df()
 
 # Filter queried results by pokemon species
-print("Filter for psychic type sleepy pokemon")
+print("Filtering for psychic type sleepy pokemon")
 filter_condition = "type.str.contains('Psychic')"
 filtered = top_k.filter(filter_condition)
 print(filtered.ids)
