@@ -248,8 +248,8 @@ class Collection:
     ) -> Collection:
         with open(os.path.join(path, "content.pkl"), mode="rb") as file:
             content = cloudpickle.load(file)
-        embeddings = Embeddings(saved_path=path)
-        metadata = Metadata(saved_path=path)
+        embeddings = Embeddings(saved_path=path, **embedding_kwargs)
+        metadata = Metadata(saved_path=path, **metadata_kwargs)
         return cls(
             content=content, embeddings=embeddings, metadata=metadata, *args, **kwargs
         )
