@@ -140,7 +140,7 @@ class Metadata:
                 ids = self.get_field("id")
             else:
                 ids = [uuid.uuid4().hex for _ in range(length)]
-        self.add_fields({"ids": ids})
+        self.add_fields({"id": ids})
 
         self.con = self.create_duckdb_con(self.metadata)
 
