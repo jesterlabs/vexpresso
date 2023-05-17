@@ -63,7 +63,9 @@ class Collection:
         if self.content is None:
             self.content = [None for _ in range(len(self.embeddings))]
 
-        self.metadata = Metadata(metadata=self.metadata, length=len(self.embeddings))
+        self.metadata = Metadata(
+            metadata=self.metadata, length=len(self.embeddings), ids=ids
+        )
 
         self.assert_data_types()
 
