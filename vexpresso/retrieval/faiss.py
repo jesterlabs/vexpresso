@@ -10,8 +10,8 @@ class FaissRetrievalStrategy(RetrievalStrategy):
         try:
             import faiss  # noqa
         except ImportError:
-            raise ValueError(
-                "Could not import faiss python package. "
+            raise ImportError(
+                "Could not import faiss python package."
                 "Please install it with `pip install faiss-cpu` or `faiss-gpu`."
             )
         self.index = None
@@ -29,9 +29,7 @@ class FaissRetrievalStrategy(RetrievalStrategy):
         embeddings: np.ndarray,
         k: int = 4,
     ) -> List[RetrievalOutput]:
-        if self.index is None:
-            self._setup_index(embeddings)
-
+        self._setup_index(embeddings)
         _, indices = self.index.search(query_embeddings.astype(np.float32), k=k)
         out = []
         for indices in indices:

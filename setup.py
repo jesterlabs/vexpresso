@@ -31,8 +31,7 @@ setup(
     install_requires=[
         'numpy',
         'pandas',
-        'langchain',
-        'huggingface_hub',
+        'duckdb'
     ],
 
     classifiers=[

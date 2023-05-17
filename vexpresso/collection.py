@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import uuid
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
@@ -64,18 +63,7 @@ class Collection:
         if self.content is None:
             self.content = [None for _ in range(len(self.embeddings))]
 
-        if self.metadata is not None:
-            if not isinstance(self.metadata, Metadata):
-                self.metadata = Metadata(self.metadata)
-            if "vexpresso_id" not in self.metadata.columns:
-                if ids is None:
-                    ids = [uuid.uuid4().hex for _ in range(len(self.embeddings))]
-                self.metadata.metadata["vexpresso_id"] = ids
-        else:
-            if ids is None:
-                ids = [uuid.uuid4().hex for _ in range(len(self.embeddings))]
-            ids_df = pd.DataFrame({"vexpresso_id": ids})
-            self.metadata = Metadata(ids_df)
+        self.metadata = Metadata(metadata=self.metadata, length=len(self.embeddings))
 
         self.assert_data_types()
 
@@ -86,9 +74,24 @@ class Collection:
                 "embeddings must either be provided as a numpy array or as an Embeddings object"
             )
 
+    def df(self) -> pd.DataFrame:
+        df = self.metadata.df()
+        df["content"] = self.content
+        return df
+
     @property
     def ids(self) -> List[Any]:
-        return self.metadata.get(["vexpresso_id"])[0]
+        return self.metadata.get_field("id")
+
+    @property
+    def fields(self) -> List[str]:
+        return self.metadata.fields
+
+    def get_field(self, field: str) -> List[Any]:
+        return self.metadata.get_field(field)
+
+    def get_fields(self, fields: List[str]) -> List[List[Any]]:
+        return self.metadata.get_fields(fields)
 
     def __len__(self) -> int:
         """
@@ -119,8 +122,8 @@ class Collection:
 
     def append(self, other: Collection) -> Collection:
         self.content.extend(other.content)
-        self.embeddings = self.embeddings.append(other.embeddings)
-        self.metadata = self.metadata.append(other.metadata)
+        self.embeddings = self.embeddings.add(other.embeddings)
+        self.metadata = self.metadata.add(other.metadata)
         return self
 
     def index(self, indices: Iterable[int]) -> Collection:
@@ -137,13 +140,24 @@ class Collection:
         query: Any = None,
         query_embedding: Optional[Any] = None,
         return_collection: bool = True,
+        filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
+        filter_string: Optional[str] = None,
+        embeddings: Optional[Embeddings] = None,
         *args,
         **kwargs,
     ) -> Union[Collection, QueryOutput]:
+        if filter_conditions is not None or filter_string is not None:
+            new_collection = self.filter(filter_conditions, filter_string)
+            return new_collection.query(query, query_embedding, return_collection)
         if query is not None:
             query = [query]
         out = self.batch_query(
-            query, query_embedding, return_collection, *args, **kwargs
+            query,
+            query_embedding,
+            return_collection,
+            embeddings=embeddings,
+            *args,
+            **kwargs,
         )
         return out[0]
 
@@ -152,9 +166,13 @@ class Collection:
         query: List[Any] = None,
         query_embedding: Optional[Union[Any, Embeddings]] = None,
         return_collection: bool = True,
+        embeddings: Optional[Embeddings] = None,
         *args,
         **kwargs,
     ) -> Union[List[Collection], List[QueryOutput]]:
+        if embeddings is None:
+            embeddings = self.embeddings
+
         if query_embedding is None:
             query_embedding = Embeddings(self.embedding_fn.batch_embed(query))
 
@@ -164,7 +182,7 @@ class Collection:
             raw_query_embedding = query_embedding.raw_embeddings
 
         retrieval_output = self.retrieval_strategy.retrieve(
-            raw_query_embedding, self.embeddings.raw_embeddings, *args, **kwargs
+            raw_query_embedding, embeddings.raw_embeddings, *args, **kwargs
         )
 
         if not return_collection:
@@ -180,53 +198,12 @@ class Collection:
             collection_list.append(self.index(r.indices))
         return collection_list
 
-    def get(
-        self,
-        indices: Optional[List[int]] = None,
-        ids: Optional[List[str]] = None,
-    ) -> Collection:
-        collection = self
-        if indices is not None:
-            collection = collection.index(indices)
-        if ids is not None:
-            _, indices = self.metadata.where(
-                column="id", values=ids, return_indices=True, return_metadata=False
-            )
-            collection = collection.index(indices)
-        return collection
-
-    def where(
-        self,
-        column: str,
-        values: List[Any],
-        not_in: bool = False,
-        query_kwargs: Dict[str, Any] = {},
-        **kwargs,
-    ) -> Collection:
-        _, indices = self.metadata.where(
-            column=column,
-            values=values,
-            return_indices=True,
-            return_metadata=False,
-            not_in=not_in,
-            query_kwargs=query_kwargs,
-            **kwargs,
-        )
-        return self.index(indices)
-
     def filter(
         self,
-        condition: str,
-        query_kwargs: Dict[str, Any] = {},
-        **kwargs,
+        filter_conditions: Dict[str, Dict[str, str]] = None,
+        filter_string: Optional[str] = None,
     ) -> Collection:
-        _, indices = self.metadata.filter(
-            condition,
-            return_indices=True,
-            return_metadata=False,
-            query_kwargs=query_kwargs,
-            **kwargs,
-        )
+        _, indices = self.metadata.filter(filter_conditions, filter_string)
         return self.index(indices)
 
     def save(self, path: str):

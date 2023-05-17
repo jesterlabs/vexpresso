@@ -21,6 +21,10 @@ class Embeddings:
                 )  # naive way of conversion
             self.raw_embeddings = self.post_process_embeddings(self.raw_embeddings)
 
+    @property
+    def shape(self):
+        return self.raw_embeddings.shape
+
     @classmethod
     def from_raw(cls, raw_embeddings: Iterable[Any], *args, **kwargs):
         return cls(raw_embeddings, *args, **kwargs)
