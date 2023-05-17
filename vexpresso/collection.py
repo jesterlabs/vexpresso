@@ -17,7 +17,6 @@ from vexpresso.retrieval import (
     TopKRetrievalStrategy,
 )
 
-
 @dataclass
 class QueryOutput:
     retrieval: RetrievalOutput

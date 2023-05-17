@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import duckdb
 import pandas as pd
+import json
 
 warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
 
@@ -262,7 +263,12 @@ class Metadata:
         return path
 
     def load(self, path: str):
-        self.metadata = pd.read_csv(path)
+        if ".json" in path:
+            with open(path, "r") as f:
+                documents = json.load(f)
+                self.metadata = pd.DataFrame(documents)
+        else:
+            self.metadata = pd.read_csv(path)
         self.add_fields(
             {"vexpresso_index": list(range(self.__len__()))}, remake_con=False
         )
