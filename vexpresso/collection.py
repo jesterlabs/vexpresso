@@ -30,7 +30,7 @@ class Collection:
         content: Optional[List[Any]] = None,
         embeddings: Optional[Union[Any, Embeddings]] = None,
         metadata: Optional[Union[pd.DataFrame, Dict[str, Any], Metadata]] = None,
-        ids: Optional[List[int]] = None,
+        ids: Optional[Union[List[str], str]] = None,
         embedding_fn: Union[EmbeddingFunction, Callable[[Any], Any], Any] = None,
         retrieval_strategy: RetrievalStrategy = TopKRetrievalStrategy(),
         saved_path: Optional[str] = None,
@@ -50,18 +50,19 @@ class Collection:
         if self.content is None and self.embeddings is None:
             raise ValueError("Either content or embeddings must be specified!")
 
+        if isinstance(self.content, str):
+            self.content = Metadata(metadata=self.metadata).get_field(self.content)
+
         if self.content is not None:
             if self.embeddings is None:
                 raw_embeddings = self.embedding_fn.batch_embed(self.content)
                 self.embeddings = Embeddings(raw_embeddings)
+        else:
+            self.content = [None for _ in range(len(self.embeddings))]
 
-        # if embeddings is not provided
         if not isinstance(self.embeddings, Embeddings):
             raw_embeddings = self.embeddings
             self.embeddings = Embeddings(raw_embeddings)
-
-        if self.content is None:
-            self.content = [None for _ in range(len(self.embeddings))]
 
         self.metadata = Metadata(
             metadata=self.metadata, length=len(self.embeddings), ids=ids
@@ -120,13 +121,23 @@ class Collection:
             embedding_fn=self.embedding_fn,
             retrieval_strategy=self.retrieval_strategy,
         )
-        return self.append(other)
+        content = self.content + other.content
+        embeddings = self.embeddings.add(other.embeddings)
+        metadata = self.metadata.add(other.metadata)
+        return Collection(
+            content=content,
+            embeddings=embeddings,
+            metadata=metadata,
+            embedding_fn=self.embedding_fn,
+            retrieval_strategy=self.retrieval_strategy,
+        )
 
-    def append(self, other: Collection) -> Collection:
-        self.content.extend(other.content)
-        self.embeddings = self.embeddings.add(other.embeddings)
-        self.metadata = self.metadata.add(other.metadata)
-        return self
+    def remove(self, ids: Union[List[str], str]) -> Collection:
+        if isinstance(ids, str):
+            filter_condition = {"id": {"neq": ids}}
+        else:
+            filter_condition = {"id": {"notcontains": ids}}
+        return self.filter(filter_condition)
 
     def index(self, indices: Iterable[int]) -> Collection:
         return Collection(
@@ -208,40 +219,34 @@ class Collection:
         _, indices = self.metadata.filter(filter_conditions, filter_string)
         return self.index(indices)
 
-    def save(self, path: str):
-        os.makedirs(path, exist_ok=True)
-        with open(os.path.join(path, "content.pkl"), mode="wb") as file:
+    def save(self, directory: str):
+        os.makedirs(directory, exist_ok=True)
+        with open(os.path.join(directory, "content.pkl"), mode="wb") as file:
             cloudpickle.dump(self.content, file)
-        self.embeddings.save(path)
-        self.metadata.save(path)
+        self.embeddings.save(os.path.join(directory, "embeddings.npy"))
+        self.metadata.save(os.path.join(directory, "metadata.csv"))
 
     def load(self, path: str):
         with open(os.path.join(path, "content.pkl"), mode="rb") as file:
             self.content = cloudpickle.load(file)
-
-        if self.embeddings is not None:
-            self.embeddings.load(path)
-        else:
-            self.embeddings = Embeddings(saved_path=path)
-
-        if self.metadata is not None:
-            self.metadata.load(path)
-        else:
-            self.metadata = Metadata(saved_path=path)
+        self.embeddings = Embeddings(path)
+        self.metadata = Metadata(path)
 
     @classmethod
     def from_saved(
         cls,
-        path,
-        embedding_kwargs: Dict[str, Any] = {},
+        directory: str,
+        embeddings_kwargs: Dict[str, Any] = {},
         metadata_kwargs: Dict[str, Any] = {},
         *args,
         **kwargs,
     ) -> Collection:
-        with open(os.path.join(path, "content.pkl"), mode="rb") as file:
+        with open(os.path.join(directory, "content.pkl"), mode="rb") as file:
             content = cloudpickle.load(file)
-        embeddings = Embeddings(saved_path=path, **embedding_kwargs)
-        metadata = Metadata(saved_path=path, **metadata_kwargs)
+        embeddings = Embeddings(
+            os.path.join(directory, "embeddings.npy"), **embeddings_kwargs
+        )
+        metadata = Metadata(os.path.join(directory, "metadata.csv"), **metadata_kwargs)
         return cls(
             content=content, embeddings=embeddings, metadata=metadata, *args, **kwargs
         )

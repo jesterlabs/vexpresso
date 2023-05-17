@@ -110,39 +110,56 @@ class Metadata:
     def __init__(
         self,
         metadata: Union[pd.DataFrame, Dict[str, Any], str, Metadata] = None,
-        ids: Optional[List[str]] = None,
+        ids: Optional[Union[List[str], str]] = None,
         length: Optional[int] = None,
     ):
         self.metadata = metadata
+        if isinstance(self.metadata, str):
+            self.load(self.metadata)
+
         if length is None:
             length = self.__len__()
-        if metadata is None:
+        if self.metadata is None:
             if length == 0:
                 raise ValueError("metadata or length must be specified!")
             self.metadata = pd.DataFrame({})
-        elif isinstance(metadata, pd.DataFrame):
-            self.metadata = metadata
-        elif isinstance(metadata, dict):
-            self.metadata = pd.DataFrame(metadata)
-        elif isinstance(metadata, str):
-            self.load(metadata)
-        elif isinstance(metadata, Metadata):
+        elif isinstance(self.metadata, dict):
+            self.metadata = pd.DataFrame([self.metadata])
+        elif isinstance(self.metadata, Metadata):
             self.metadata = metadata.metadata
+        elif isinstance(self.metadata, pd.DataFrame):
+            pass
         else:
             raise ValueError(
                 "metadata must be either of types: (pd.DataFrame, Dict[str, Any], str, Metadata)"
             )
 
-        self.add_fields({"vexpresso_index": list(range(length))})
+        self.con = self.create_duckdb_con(self.metadata)
+
+        if isinstance(ids, str):
+            ids = self.get_field(ids)
 
         if ids is None:
             if "id" in self.fields:
                 ids = self.get_field("id")
             else:
                 ids = [uuid.uuid4().hex for _ in range(length)]
-        self.add_fields({"id": ids})
 
-        self.con = self.create_duckdb_con(self.metadata)
+        self.add_fields({"vexpresso_index": list(range(length))}, False)
+        self.add_fields({"id": ids}, False)
+        self.fill_nas()
+
+    def fill_nas(self, remake_con: bool = True):
+        for col in self.metadata.columns:
+            # get dtype for column
+            dt = self.metadata[col].dtype
+            # check if it is a number
+            if dt == int or dt == float:
+                self.metadata[col] = self.metadata[col].fillna(0)
+            else:
+                self.metadata[col] = self.metadata[col].fillna("null")
+        if remake_con:
+            self.con = self.create_duckdb_con(self.metadata)
 
     def create_duckdb_con(self, df) -> duckdb.DuckDBPyRelation:
         return duckdb.from_df(df)
@@ -152,10 +169,11 @@ class Metadata:
             return 0
         return self.metadata.shape[0]
 
-    def add_fields(self, fields: Dict[str, Iterable[Any]]):
+    def add_fields(self, fields: Dict[str, Iterable[Any]], remake_con: bool = True):
         for field in fields:
             self.metadata[field] = fields[field]
-        self.con = self.create_duckdb_con(self.metadata)
+        if remake_con:
+            self.con = self.create_duckdb_con(self.metadata)
 
     @property
     def fields(self) -> List[str]:
@@ -233,25 +251,19 @@ class Metadata:
     ) -> Metadata:
         if metadata is None:
             metadata = self.make_empty_rows()[0]
-        elif isinstance(metadata, dict):
-            # formatting for dataframe
-            metadata = [metadata]
-            metadata = pd.DataFrame(metadata)
-        elif isinstance(metadata, Metadata):
-            metadata = metadata.metadata
-        self.metadata = pd.concat([self.metadata, metadata], ignore_index=True)
-        self.add_fields({"vexpresso_index": list(range(self.__len__()))})
-        return self
+        if not isinstance(metadata, Metadata):
+            metadata = Metadata(metadata)
+            return self.add(metadata)
+        df = pd.concat([self.metadata, metadata.metadata], ignore_index=True)
+        return Metadata(df)
 
-    # def save(self, path: str, filename: Optional[str] = None) -> str:
-    #     if filename is None:
-    #         filename = "metadata.csv"
-    #     path = os.path.join(path, filename)
-    #     self.metadata.to_csv(path)
-    #     return path
+    def save(self, path: str) -> str:
+        self.metadata.to_csv(path, index=False)
+        return path
 
-    # def load(self, path: str, filename: Optional[str] = None):
-    #     if filename is None:
-    #         filename = "metadata.csv"
-    #     path = os.path.join(path, filename)
-    #     self.metadata = pd.read_csv(path)
+    def load(self, path: str):
+        self.metadata = pd.read_csv(path)
+        self.add_fields(
+            {"vexpresso_index": list(range(self.__len__()))}, remake_con=False
+        )
+        self.fill_nas(remake_con=True)
