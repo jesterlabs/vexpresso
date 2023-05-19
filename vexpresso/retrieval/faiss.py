@@ -7,8 +7,11 @@ from vexpresso.retrieval.strategy import RetrievalOutput, RetrievalStrategy
 
 class FaissRetrievalStrategy(RetrievalStrategy):
     def __init__(self):
+        self._faiss = None
         try:
             import faiss  # noqa
+
+            self._faiss = faiss
         except ImportError:
             raise ImportError(
                 "Could not import faiss python package."
@@ -17,10 +20,7 @@ class FaissRetrievalStrategy(RetrievalStrategy):
         self.index = None
 
     def _setup_index(self, embeddings: np.ndarray):
-        # put try import here as well for linter
-        import faiss
-
-        self.index = faiss.IndexFlatL2(embeddings.shape[1])  # noqa
+        self.index = self._faiss.IndexFlatL2(embeddings.shape[1])  # noqa
         self.index.add(embeddings.astype(np.float32))
 
     def retrieve(

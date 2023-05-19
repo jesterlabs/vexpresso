@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import uuid
 
 # import os
@@ -9,7 +10,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import duckdb
 import pandas as pd
-import json
 
 warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
 
