@@ -236,25 +236,37 @@ class Collection:
 
     def save(
         self,
-        directory: str,
+        directory_or_repo_id: Optional[str] = None,
         to_hub: bool = False,
         token: Optional[str] = None,
         private: bool = True,
+        hf_username: Optional[str] = None,
+        repo_name: Optional[str] = None,
         hub_kwargs: Optional[Dict[str, Any]] = {},
     ) -> str:
         if to_hub:
-            print(f"Uploading collection to {directory}")
+            print(f"Uploading collection to {directory_or_repo_id}")
+            if directory_or_repo_id is None:
+                if hf_username is None or repo_name is None:
+                    raise ValueError(
+                        "Please provide either a directory / repo id or your huggingface username + repo name"
+                    )
+                directory_or_repo_id = f"{hf_username}/{repo_name}"
             with tempfile.TemporaryDirectory() as tmpdirname:
                 self.save_local(tmpdirname)
                 helper = HFHubHelper()
                 helper.upload(
-                    repo_id=directory,
+                    repo_id=directory_or_repo_id,
                     folder_path=tmpdirname,
                     token=token,
                     private=private,
                     **hub_kwargs,
                 )
-        return directory
+            print(f"Upload to {directory_or_repo_id} complete!")
+            return directory_or_repo_id
+        else:
+            print(f"saving to {directory_or_repo_id}")
+            return self.save_local(directory_or_repo_id)
 
     @classmethod
     def from_local_dir(
@@ -278,25 +290,37 @@ class Collection:
     @classmethod
     def from_saved(
         cls,
-        directory: str,
+        directory_or_repo_id: Optional[str] = None,
         embeddings_kwargs: Dict[str, Any] = {},
         metadata_kwargs: Dict[str, Any] = {},
         token: Optional[str] = None,
         local_dir: Optional[str] = None,
         to_tmpdir: bool = False,
-        hub_kwargs: Optional[Dict[str, Any]] = {},
+        hf_username: Optional[str] = None,
+        repo_name: Optional[str] = None,
+        hub_download_kwargs: Optional[Dict[str, Any]] = {},
         *args,
         **kwargs,
     ) -> Collection:
-        saved_dir = directory
-        if not os.path.isdir(directory):
+        if directory_or_repo_id is None:
+            if hf_username is None or repo_name is None:
+                raise ValueError(
+                    "Please provide either a directory / repo id or your huggingface username + repo name"
+                )
+            directory_or_repo_id = f"{hf_username}/{repo_name}"
+        saved_dir = directory_or_repo_id
+        if not os.path.isdir(directory_or_repo_id):
             # from huggingface
+            print(f"Retrieving from hf repo: {directory_or_repo_id}")
             with tempfile.TemporaryDirectory() as tmpdirname:
                 helper = HFHubHelper()
                 if to_tmpdir:
                     local_dir = tmpdirname
                 saved_dir = helper.download(
-                    directory, token=token, local_dir=local_dir, **hub_kwargs
+                    directory_or_repo_id,
+                    token=token,
+                    local_dir=local_dir,
+                    **hub_download_kwargs,
                 )
         return cls.from_local_dir(
             saved_dir, embeddings_kwargs, metadata_kwargs, *args, **kwargs
@@ -305,24 +329,10 @@ class Collection:
     @classmethod
     def load(
         cls,
-        directory: str,
-        embeddings_kwargs: Dict[str, Any] = {},
-        metadata_kwargs: Dict[str, Any] = {},
-        token: Optional[str] = None,
-        local_dir: Optional[str] = None,
-        to_tmpdir: bool = False,
-        hub_kwargs: Optional[Dict[str, Any]] = {},
         *args,
         **kwargs,
     ) -> Collection:
         return cls.from_saved(
-            directory,
-            embeddings_kwargs,
-            metadata_kwargs,
-            token,
-            local_dir,
-            to_tmpdir,
-            hub_kwargs,
             *args,
             **kwargs,
         )

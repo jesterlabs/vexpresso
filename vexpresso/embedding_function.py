@@ -19,7 +19,6 @@ class LangChainEmbeddingsFunction(EmbeddingFunction):
     def __init__(self, embedding_fn):
         try:
             from langchain.embeddings.base import Embeddings  # noqa
-
             self.embedding_fn = embedding_fn
         except ImportError:
             raise ImportError(
