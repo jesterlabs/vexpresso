@@ -1,8 +1,8 @@
-from typing import List
+from typing import Any, List
 
 import numpy as np
 
-from vexpresso.retrieval.strategy import RetrievalOutput, RetrievalStrategy
+from vexpresso.retriever.retriever import RetrievalOutput, Retriever
 
 
 def is_batched(arr: np.ndarray) -> bool:
@@ -41,7 +41,7 @@ def get_similarity_fn(name: str):
     return functions.get(name, functions["cosine"])
 
 
-class TopKRetrievalStrategy(RetrievalStrategy):
+class NumpyRetriever(Retriever):
     def __init__(self, similarity_fn: str = "cosine"):
         self.similarity_fn = get_similarity_fn(similarity_fn)
 
@@ -67,20 +67,24 @@ class TopKRetrievalStrategy(RetrievalStrategy):
         top_indices = np.flip(
             np.argsort(similarities, axis=-1)[:, -k:], axis=-1
         )  # B X k
-        return top_indices
+        return top_indices, similarities
 
     def retrieve(
         self,
         query_embeddings: np.ndarray,
-        embeddings: np.ndarray,
+        embeddings: List[Any],
         k: int = 4,
     ) -> List[RetrievalOutput]:
-        top_indices = self._get_top_k(query_embeddings, embeddings, k)
+        embeddings = np.array(embeddings)
+        top_indices, similarities = self._get_top_k(query_embeddings, embeddings, k)
         # move to list for consistency w/ single and batch calls
         out = []
-        for indices in top_indices:
+        for idx in range(top_indices.shape[0]):
             query_output = RetrievalOutput(
-                embeddings[indices], indices, query_embeddings
+                embeddings[top_indices[idx]],
+                top_indices[idx],
+                scores=similarities[idx],
+                query_embeddings=query_embeddings[idx],
             )
             out.append(query_output)
         return out
