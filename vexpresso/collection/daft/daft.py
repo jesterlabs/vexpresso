@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import inspect
 import json
 import os
-from functools import reduce
+from functools import partial
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import daft
@@ -11,216 +10,12 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 from daft import col
-from daft.datatype import DataType
-from daft.expressions import Expression
 
 from vexpresso.collection.collection import Collection, Plan
+from vexpresso.collection.daft.filter import FilterHelper
 from vexpresso.retriever import NumpyRetriever, Retriever
+from vexpresso.transformation import CallableTransformation, Transformation  # noqa
 from vexpresso.utils import deep_get
-
-
-class FilterMethods:
-    @classmethod
-    def filter_methods(cls) -> Dict[str, Any]:
-        NON_FILTER_METHODS = ["filter_methods", "print_filter_methods"]
-        methods = {
-            m[0]: m[1]
-            for m in inspect.getmembers(cls)
-            if not m[0].startswith("_") and m[0] not in NON_FILTER_METHODS
-        }
-        return methods
-
-    @classmethod
-    def print_filter_methods(cls):
-        filter_methods = cls.filter_methods()
-        for method in filter_methods:
-            description = filter_methods[method].__doc__
-            print(f"{method}: {description}")
-            print("----------------------------------")
-
-    @classmethod
-    def eq(cls, field: str, value: Union[str, int, float]) -> Expression:
-        """
-        {field} equal to {value} (str, int, float)
-        """
-
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) == value
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def neq(cls, field: str, value: Union[str, int, float]) -> Expression:
-        """
-        {field} not equal to {value} (str, int, float)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) != value
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def gt(cls, field: str, value: Union[int, float]) -> Expression:
-        """
-        {field} greater than {value} (int, float)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) > value
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def gte(cls, field: str, value: Union[int, float]) -> Expression:
-        """
-        {field} greater than or equal to {value} (int, float)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) >= value
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def lt(cls, field: str, value: Union[int, float]) -> Expression:
-        """
-        {field} less than {value} (int, float)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) < value
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def lte(cls, field: str, value: Union[int, float]) -> Expression:
-        """
-        {field} less than or equal to {value} (int, float)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) <= value
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def isin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
-        """
-        {field} is in list of {values} (list of str, int, or float)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) in values
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def notin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
-        """
-        {field} not in list of {values} (list of str, int, or float)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return deep_get(col_val, keys=keys) not in values
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def contains(cls, field: str, value: Union[str, int, float]) -> Expression:
-        """
-        {field} (str) contains {value} (str)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return value in deep_get(col_val, keys=keys)
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-    @classmethod
-    def notcontains(cls, field: str, value: Union[str, int, float]) -> Expression:
-        """
-        {field} (str) does not contains {value} (str)
-        """
-        field_name = field.split(".")[0]
-
-        def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
-            return value not in deep_get(col_val, keys=keys)
-
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
-
-
-class FilterHelper:
-    FILTER_METHODS = FilterMethods.filter_methods()
-
-    @classmethod
-    def filter(
-        cls, df: daft.DataFrame, filter_conditions: Dict[str, Dict[str, str]]
-    ) -> daft.DataFrame:
-        filters = []
-        for metadata_field in filter_conditions:
-            metadata_conditions = filter_conditions[metadata_field]
-            for filter_method in metadata_conditions:
-                if filter_method not in cls.FILTER_METHODS:
-                    raise ValueError(
-                        f"""
-                            filter_method: {filter_method} not in supported filter methods: {cls.FILTER_METHODS}.
-                        """
-                    )
-                value = metadata_conditions[filter_method]
-                filters.append(cls.FILTER_METHODS[filter_method](metadata_field, value))
-        op: Expression = reduce(lambda a, b: a & b, filters)
-        return df.where(op)
 
 
 @daft.udf(return_dtype=daft.DataType.int64())
@@ -230,6 +25,7 @@ def indices(columnn):
 
 @daft.udf(return_dtype=daft.DataType.python())
 def embed(column, embedding_fn):
+    # dumb langchain check, might need something more specific here
     if getattr(embedding_fn, "embed_documents", None) is not None:
         return np.array(embedding_fn.embed_documents(column.to_pylist()))
     return embedding_fn(column.to_pylist())
@@ -282,7 +78,7 @@ class DaftCollection(Collection):
 
         if df is None:
             if isinstance(content, str):
-                content = {f"{content}": _metadata_dict.get(content)}
+                content = {f"{content}": deep_get(_metadata_dict, keys=content)}
             self.df = daft.from_pydict({**content, **_metadata_dict})
             for k, _ in content.items():
                 if embedding_fn is not None:
@@ -305,6 +101,8 @@ class DaftCollection(Collection):
     def show(self, num_rows: int):
         return self.df.show(num_rows)
 
+    # def transform(self, )
+
     @property
     def indices(self) -> List[int]:
         return self.df.select("modal_map_index").to_pydict()["modal_map_index"]
@@ -313,9 +111,26 @@ class DaftCollection(Collection):
     def column_names(self) -> List[str]:
         return self.df.column_names
 
-    def get_fields(self, column_names: List[str]) -> List[Any]:
-        _dict = self.df.to_pydict()
-        return [_dict[c] for c in column_names]
+    def get_fields(
+        self, *args, return_daft: bool = False
+    ) -> Union[daft.DataFrame, Dict[str, List[Any]]]:
+        def _get_field(column, keys):
+            return deep_get(column, keys=keys)
+
+        expressions = []
+        for c in args:
+            col_name = c.split(".")[0]
+            rest = None
+            if "." in c:
+                rest = c.split(".", 1)[-1]
+            expressions.append(
+                col(col_name).apply(
+                    partial(_get_field, keys=rest), return_dtype=daft.DataType.python()
+                )
+            )
+        if not return_daft:
+            return self.df.select(*expressions).to_pydict()
+        return self.df.select(*expressions)
 
     def embed(self, column: str):
         return self.df.with_column(
