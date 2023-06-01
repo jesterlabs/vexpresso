@@ -2,10 +2,10 @@ from typing import List
 
 import numpy as np
 
-from vexpresso.retrieval.strategy import RetrievalOutput, RetrievalStrategy
+from vexpresso.retriever.retriever import RetrievalOutput, Retriever
 
 
-class FaissRetrievalStrategy(RetrievalStrategy):
+class FaissRetriever(Retriever):
     def __init__(self):
         self._faiss = None
         try:
@@ -30,11 +30,11 @@ class FaissRetrievalStrategy(RetrievalStrategy):
         k: int = 4,
     ) -> List[RetrievalOutput]:
         self._setup_index(embeddings)
-        _, indices = self.index.search(query_embeddings.astype(np.float32), k=k)
+        distances, indices = self.index.search(query_embeddings.astype(np.float32), k=k)
         out = []
         for indices in indices:
             query_output = RetrievalOutput(
-                embeddings[indices], indices, query_embeddings
+                embeddings[indices], indices, query_embeddings, scores=distances
             )
             out.append(query_output)
         return out
