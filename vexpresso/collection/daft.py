@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import os
 from functools import reduce
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -259,7 +260,7 @@ class DaftCollection(Collection):
         self,
         content: Optional[Dict[str, Iterable[Any]]] = None,
         df: Optional[daft.DataFrame] = None,
-        metadata: Optional[pd.DataFrame] = None,
+        metadata: Optional[Union[str, pd.DataFrame]] = None,
         embedding_fn=None,
         retriever: Retriever = NumpyRetriever(),
         plan: List[Plan] = [],
@@ -273,6 +274,10 @@ class DaftCollection(Collection):
         _metadata_dict = {}
 
         if metadata is not None:
+            if isinstance(metadata, str):
+                if metadata.endswith(".json"):
+                    with open(metadata, "r") as f:
+                        metadata = pd.DataFrame(json.load(f))
             _metadata_dict = metadata.to_dict("list")
 
         if df is None:
