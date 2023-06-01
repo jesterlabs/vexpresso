@@ -277,7 +277,7 @@ class DaftCollection(Collection):
 
         if df is None:
             if isinstance(content, str):
-                content = _metadata_dict.get(content)
+                content = {f"{content}": _metadata_dict.get(content)}
             self.df = daft.from_pydict({**content, **_metadata_dict})
             for k, _ in content.items():
                 if embedding_fn is not None:
@@ -297,9 +297,16 @@ class DaftCollection(Collection):
             plan=plan,
         )
 
+    def show(self, num_rows: int):
+        return self.df.show(num_rows)
+
     @property
     def indices(self) -> List[int]:
         return self.df.select("modal_map_index").to_pydict()["modal_map_index"]
+
+    @property
+    def column_names(self) -> List[str]:
+        return self.df.column_names
 
     def get_fields(self, column_names: List[str]) -> List[Any]:
         _dict = self.df.to_pydict()
@@ -335,6 +342,11 @@ class DaftCollection(Collection):
                 query_embeddings = self.embedding_fn(query)
 
         embedding_column_name = f"embeddings_{content_name}"
+        if embedding_column_name not in self.column_names:
+            print(
+                f"{embedding_column_name} not found in daft df. Embedding column {content_name}..."
+            )
+            df = self.embed(content_name)
 
         df = df.with_column(
             "retrieve_output",
