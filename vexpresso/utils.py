@@ -4,6 +4,8 @@ from typing import Optional
 
 
 def deep_get(dictionary, keys=None, default=None):
+    if keys is None:
+        return dictionary
     if isinstance(dictionary, dict):
         return reduce(
             lambda d, key: d.get(key, default) if isinstance(d, dict) else default,
