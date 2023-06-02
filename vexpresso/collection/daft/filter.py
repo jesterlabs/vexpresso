@@ -1,6 +1,6 @@
 import inspect
 from functools import reduce
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import daft
 from daft import col
@@ -30,18 +30,23 @@ class FilterMethods:
             print("----------------------------------")
 
     @classmethod
+    def _get_field_name_and_key(cls, field) -> Tuple[str, str]:
+        field_name = field.split(".")[0]
+
+        keys = None
+        if "." in field:
+            keys = field.split(".", 1)[-1]
+        return field_name, keys
+
+    @classmethod
     def eq(cls, field: str, value: Union[str, int, float]) -> Expression:
         """
         {field} equal to {value} (str, int, float)
         """
 
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) == value
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -51,13 +56,9 @@ class FilterMethods:
         """
         {field} not equal to {value} (str, int, float)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) != value
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -67,13 +68,9 @@ class FilterMethods:
         """
         {field} greater than {value} (int, float)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) > value
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -83,13 +80,9 @@ class FilterMethods:
         """
         {field} greater than or equal to {value} (int, float)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) >= value
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -99,13 +92,9 @@ class FilterMethods:
         """
         {field} less than {value} (int, float)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) < value
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -115,13 +104,9 @@ class FilterMethods:
         """
         {field} less than or equal to {value} (int, float)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) <= value
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -131,13 +116,9 @@ class FilterMethods:
         """
         {field} is in list of {values} (list of str, int, or float)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) in values
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -147,13 +128,9 @@ class FilterMethods:
         """
         {field} not in list of {values} (list of str, int, or float)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return deep_get(col_val, keys=keys) not in values
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -163,13 +140,9 @@ class FilterMethods:
         """
         {field} (str) contains {value} (str)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return value in deep_get(col_val, keys=keys)
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
@@ -179,16 +152,24 @@ class FilterMethods:
         """
         {field} (str) does not contains {value} (str)
         """
-        field_name = field.split(".")[0]
+        field_name, keys = cls._get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
-            keys = field
-            if "." in field:
-                keys = field.split(".", 1)[-1]
-
             return value not in deep_get(col_val, keys=keys)
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
+
+    @classmethod
+    def select(cls, field: str) -> Expression:
+        """
+        select field
+        """
+        field_name, keys = cls._get_field_name_and_key(field)
+
+        def _apply_fn(col_val) -> bool:
+            return deep_get(col_val, keys=keys)
+
+        return col(field_name).apply(_apply_fn, return_dtype=DataType.python())
 
 
 class FilterHelper:
@@ -221,3 +202,8 @@ class FilterHelper:
             filters.append(filt)
         op: Expression = reduce(lambda a, b: a & b, filters)
         return df.where(op)
+
+    @classmethod
+    def select(cls, df: daft.DataFrame, *args) -> daft.DataFrame:
+        expressions = [FilterMethods.select(c) for c in args]
+        return df.select(*expressions)

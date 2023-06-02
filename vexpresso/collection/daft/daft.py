@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from functools import partial
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import daft
 import numpy as np
@@ -23,12 +23,11 @@ def indices(columnn):
     return list(range(len(columnn)))
 
 
-@daft.udf(return_dtype=daft.DataType.python())
 def embed(column, embedding_fn):
     # dumb langchain check, might need something more specific here
     if getattr(embedding_fn, "embed_documents", None) is not None:
-        return np.array(embedding_fn.embed_documents(column.to_pylist()))
-    return embedding_fn(column.to_pylist())
+        return np.array(embedding_fn.embed_documents(column))
+    return embedding_fn(column)
 
 
 @daft.udf(return_dtype=daft.DataType.python())
@@ -57,7 +56,7 @@ class DaftCollection(Collection):
         content: Optional[Dict[str, Iterable[Any]]] = None,
         df: Optional[daft.DataFrame] = None,
         metadata: Optional[Union[str, pd.DataFrame]] = None,
-        embedding_fn=None,
+        embedding_fn: Callable[[List[Any], List[Any]]] = None,
         retriever: Retriever = NumpyRetriever(),
         plan: List[Plan] = [],
         lazy_start: bool = False,
@@ -80,15 +79,26 @@ class DaftCollection(Collection):
             if isinstance(content, str):
                 content = {f"{content}": deep_get(_metadata_dict, keys=content)}
             self.df = daft.from_pydict({**content, **_metadata_dict})
-            for k, _ in content.items():
-                if embedding_fn is not None:
-                    if not k.startswith("embeddings_"):
-                        self.df = self.embed(k)
+
+            columns = list(content.keys())
+            columns = {
+                f"embeddings_{c}": c
+                for c in columns
+                if f"embeddings_{c}" not in self.column_names
+            }
+
+            if len(columns) > 0 and self.embedding_fn is not None:
+                collection = self.embed(
+                    **columns,
+                    lazy=lazy_start,
+                    embedding_fn=self.embedding_fn,
+                )
+                self.df = collection.df
+                self.plan = collection.plan
+
             self.df = self.df.with_column(
                 "modal_map_index", indices(col(self.df.column_names[0]))
             )
-            if not lazy_start:
-                self.df = self.df.collect()
 
     def _from_plan(self, plan: List[Plan]) -> DaftCollection:
         return DaftCollection(
@@ -98,10 +108,16 @@ class DaftCollection(Collection):
             plan=plan,
         )
 
+    def to_pandas(self) -> pd.DataFrame:
+        collection = self.execute()
+        return collection.df.to_pandas()
+
+    def to_dict(self) -> Dict[str, List[Any]]:
+        collection = self.execute()
+        return collection.df.to_pydict()
+
     def show(self, num_rows: int):
         return self.df.show(num_rows)
-
-    # def transform(self, )
 
     @property
     def indices(self) -> List[int]:
@@ -111,32 +127,15 @@ class DaftCollection(Collection):
     def column_names(self) -> List[str]:
         return self.df.column_names
 
-    def get_fields(
-        self, *args, return_daft: bool = False
-    ) -> Union[daft.DataFrame, Dict[str, List[Any]]]:
-        def _get_field(column, keys):
-            return deep_get(column, keys=keys)
-
-        expressions = []
-        for c in args:
-            col_name = c.split(".")[0]
-            rest = None
-            if "." in c:
-                rest = c.split(".", 1)[-1]
-            expressions.append(
-                col(col_name).apply(
-                    partial(_get_field, keys=rest), return_dtype=daft.DataType.python()
-                )
-            )
-        if not return_daft:
-            return self.df.select(*expressions).to_pydict()
-        return self.df.select(*expressions)
-
-    def embed(self, column: str):
-        return self.df.with_column(
-            f"embeddings_{column}",
-            embed(col(column), embedding_fn=self.embedding_fn),
-        )
+    def embed(
+        self, *args, lazy: bool = True, embedding_fn=None, **kwargs
+    ) -> Collection:
+        if embedding_fn is None:
+            embedding_fn = self.embedding_fn
+        transformation = partial(embed, embedding_fn=embedding_fn)
+        if not isinstance(transformation, Transformation):
+            transformation = CallableTransformation(transformation)
+        return self.transform(*args, transform=transformation, lazy=lazy, **kwargs)
 
     def collect(self):
         return DaftCollection(
@@ -156,10 +155,7 @@ class DaftCollection(Collection):
         if df is None:
             df = self.df
         if query_embeddings is None:
-            if getattr(self.embedding_fn, "embed_documents"):
-                query_embeddings = np.array(self.embedding_fn.embed_documents(query))
-            else:
-                query_embeddings = self.embedding_fn(query)
+            query_embeddings = embed(query, self.embedding_fn)
 
         embedding_column_name = f"embeddings_{content_name}"
         if embedding_column_name not in self.column_names:
@@ -225,20 +221,54 @@ class DaftCollection(Collection):
             plan=self.plan,
         )
 
-    def execute_filter(
-        self, filter_conditions: Dict[str, Dict[str, str]], *args, **kwargs
-    ) -> Collection:
-        filtered_df = FilterHelper.filter(self.df, filter_conditions, *args, **kwargs)
+    def execute_select(
+        self,
+        *args,
+    ) -> DaftCollection:
         return DaftCollection(
-            df=filtered_df,
+            df=FilterHelper.select(self.df, *args),
             embedding_fn=self.embedding_fn,
             retriever=self.retriever,
             plan=self.plan,
         )
 
-    def to_pandas(self) -> pd.DataFrame:
-        collection = self.execute()
-        return collection.df.to_pandas()
+    def execute_filter(
+        self, filter_conditions: Dict[str, Dict[str, str]], *args, **kwargs
+    ) -> Collection:
+        return DaftCollection(
+            df=FilterHelper.filter(self.df, filter_conditions, *args, **kwargs),
+            embedding_fn=self.embedding_fn,
+            retriever=self.retriever,
+            plan=self.plan,
+        )
+
+    def execute_transform(
+        self,
+        *args,
+        transform: Union[Callable[[List[Any]], List[Any]], Transformation],
+        **kwargs,
+    ) -> DaftCollection:
+        if not isinstance(transform, Transformation):
+            # callable
+            transform = CallableTransformation(transform)
+
+        @daft.udf(return_dtype=daft.DataType.python())
+        def _udf(column):
+            column = column.to_pylist()
+            return transform(column)
+
+        df = self.df
+        for c in args:
+            df = df.with_column(f"transformed_{c}", _udf(col(c)))
+        for k in kwargs:
+            df = df.with_column(k, _udf(col(kwargs[k])))
+
+        return DaftCollection(
+            df=df,
+            embedding_fn=self.embedding_fn,
+            retriever=self.retriever,
+            plan=self.plan,
+        )
 
     def save_local(self, directory: str) -> str:
         os.makedirs(directory, exist_ok=True)
