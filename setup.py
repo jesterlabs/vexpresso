@@ -31,7 +31,8 @@ setup(
     install_requires=[
         'numpy',
         'pandas',
-        'duckdb',
+        'langchain',
+        'daft',
         'huggingface_hub'
     ],
 

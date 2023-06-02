@@ -1,13 +1,13 @@
 import inspect
 from functools import reduce
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Union
 
 import daft
 from daft import col
 from daft.datatype import DataType
 from daft.expressions import Expression
 
-from vexpresso.utils import deep_get
+from vexpresso.utils import deep_get, get_field_name_and_key
 
 
 class FilterMethods:
@@ -30,21 +30,12 @@ class FilterMethods:
             print("----------------------------------")
 
     @classmethod
-    def _get_field_name_and_key(cls, field) -> Tuple[str, str]:
-        field_name = field.split(".")[0]
-
-        keys = None
-        if "." in field:
-            keys = field.split(".", 1)[-1]
-        return field_name, keys
-
-    @classmethod
     def eq(cls, field: str, value: Union[str, int, float]) -> Expression:
         """
         {field} equal to {value} (str, int, float)
         """
 
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) == value
@@ -56,7 +47,7 @@ class FilterMethods:
         """
         {field} not equal to {value} (str, int, float)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) != value
@@ -68,7 +59,7 @@ class FilterMethods:
         """
         {field} greater than {value} (int, float)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) > value
@@ -80,7 +71,7 @@ class FilterMethods:
         """
         {field} greater than or equal to {value} (int, float)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) >= value
@@ -92,7 +83,7 @@ class FilterMethods:
         """
         {field} less than {value} (int, float)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) < value
@@ -104,7 +95,7 @@ class FilterMethods:
         """
         {field} less than or equal to {value} (int, float)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) <= value
@@ -116,7 +107,7 @@ class FilterMethods:
         """
         {field} is in list of {values} (list of str, int, or float)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) in values
@@ -128,7 +119,7 @@ class FilterMethods:
         """
         {field} not in list of {values} (list of str, int, or float)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) not in values
@@ -140,7 +131,7 @@ class FilterMethods:
         """
         {field} (str) contains {value} (str)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return value in deep_get(col_val, keys=keys)
@@ -152,7 +143,7 @@ class FilterMethods:
         """
         {field} (str) does not contains {value} (str)
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return value not in deep_get(col_val, keys=keys)
@@ -164,7 +155,7 @@ class FilterMethods:
         """
         select field
         """
-        field_name, keys = cls._get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys)

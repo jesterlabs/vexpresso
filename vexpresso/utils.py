@@ -1,6 +1,25 @@
 import os
+from dataclasses import dataclass
 from functools import reduce
-from typing import Optional
+from typing import Optional, Tuple
+
+
+@dataclass
+class Column:
+    name: str
+
+
+def col(name: str) -> Column:
+    return Column(name)
+
+
+def get_field_name_and_key(field) -> Tuple[str, str]:
+    field_name = field.split(".")[0]
+
+    keys = None
+    if "." in field:
+        keys = field.split(".", 1)[-1]
+    return field_name, keys
 
 
 def deep_get(dictionary, keys=None, default=None):
