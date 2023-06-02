@@ -98,7 +98,7 @@ class DaftCollection(Collection):
                 self.plan = collection.plan
 
             self.df = self.df.with_column(
-                "modal_map_index", indices(col(self.df.column_names[0]))
+                "vexpresso_index", indices(col(self.df.column_names[0]))
             )
 
             if not lazy_start:
@@ -154,7 +154,7 @@ class DaftCollection(Collection):
 
     @property
     def indices(self) -> List[int]:
-        return self.df.select("modal_map_index").to_pydict()["modal_map_index"]
+        return self.df.select("vexpresso_index").to_pydict()["vexpresso_index"]
 
     @property
     def column_names(self) -> List[str]:
