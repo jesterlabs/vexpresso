@@ -8,8 +8,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from vexpresso.transformation import Transformation
-from vexpresso.utils import HFHubHelper
+from vexpresso.utils import Column, HFHubHelper
 
 
 @dataclass
@@ -25,7 +24,7 @@ class Collection(metaclass=abc.ABCMeta):
         self.lazy = lazy_start
 
     def _from_plan(self, plan: List[Plan]) -> Collection:
-        return Collection(self.plan)
+        return Collection(plan)
 
     def collect(self) -> Collection:
         """
@@ -51,7 +50,16 @@ class Collection(metaclass=abc.ABCMeta):
         Converts collection to dict
 
         Returns:
-            dict: collection as dict
+            Dict[str, List[Any]]: collection as dict
+        """
+
+    @abc.abstractmethod
+    def to_list(self) -> List[Any]:
+        """
+        Converts collection to list
+
+        Returns:
+            List[Any]: returns list of columns
         """
 
     @abc.abstractmethod
@@ -97,8 +105,9 @@ class Collection(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def execute_transform(
         self,
-        *args,
-        transform: Union[Callable[[List[Any]], List[Any]], Transformation],
+        *args: Union[Column, Any],
+        to: str,
+        transform: Callable[[List[Any]], List[Any]],
         **kwargs,
     ) -> Collection:
         """
@@ -112,9 +121,10 @@ class Collection(metaclass=abc.ABCMeta):
         query_embeddings: Dict[str, Any] = {},
         filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
         lazy: bool = True,
+        return_plan: bool = False,
         *args,
         **kwargs,
-    ) -> Collection:
+    ) -> Union[Collection, Plan]:
         new_plan = self.plan + [
             Plan(
                 "execute_query",
@@ -122,6 +132,9 @@ class Collection(metaclass=abc.ABCMeta):
                 kwargs={"query": query, "query_embeddings": query_embeddings, **kwargs},
             )
         ]
+        if return_plan:
+            return new_plan
+
         collection = self._from_plan(new_plan)
         if filter_conditions is not None:
             collection = collection.filter(filter_conditions, lazy=lazy)
@@ -132,14 +145,18 @@ class Collection(metaclass=abc.ABCMeta):
     def select(
         self,
         *args,
+        return_plan: bool = False,
         lazy: bool = False,
-    ) -> Collection:
+    ) -> Union[Collection, Plan]:
         new_plan = self.plan + [
             Plan(
                 "execute_select",
                 args=args,
             )
         ]
+        if return_plan:
+            return new_plan
+
         collection = self._from_plan(new_plan)
         if lazy:
             return collection
@@ -149,9 +166,10 @@ class Collection(metaclass=abc.ABCMeta):
         self,
         filter_conditions: Dict[str, Dict[str, str]],
         lazy: bool = True,
+        return_plan: bool = False,
         *args,
         **kwargs,
-    ) -> Collection:
+    ) -> Union[Collection, Plan]:
         new_plan = self.plan + [
             Plan(
                 "execute_filter",
@@ -162,6 +180,9 @@ class Collection(metaclass=abc.ABCMeta):
                 },
             )
         ]
+        if return_plan:
+            return new_plan
+
         collection = self._from_plan(new_plan)
         if lazy:
             return collection
@@ -170,17 +191,22 @@ class Collection(metaclass=abc.ABCMeta):
     def transform(
         self,
         *args,
-        transform: Union[Callable[[List[Any]], List[Any]], Transformation],
+        to: str,
+        transform: Callable[[List[Any]], List[Any]] = None,
         lazy: bool = True,
+        return_plan: bool = False,
         **kwargs,
-    ) -> Collection:
+    ) -> Union[Collection, Plan]:
         new_plan = self.plan + [
             Plan(
                 "execute_transform",
                 args=args,
-                kwargs={"transform": transform, **kwargs},
+                kwargs={"transform": transform, "to": to, **kwargs},
             )
         ]
+        if return_plan:
+            return new_plan
+
         collection = self._from_plan(new_plan)
         if lazy:
             return collection
