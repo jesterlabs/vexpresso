@@ -162,6 +162,19 @@ class FilterMethods:
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.python())
 
+    @classmethod
+    def custom(cls, field: str, function_kwargs) -> Expression:
+        field_name, keys = get_field_name_and_key(field)
+
+        if len(function_kwargs) == 1:
+            function_kwargs = (function_kwargs, {})
+        function, kwargs = function_kwargs
+
+        def _apply_fn(col_val) -> bool:
+            return function(deep_get(col_val, keys=keys), **kwargs)
+
+        return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
+
 
 class FilterHelper:
     FILTER_METHODS = FilterMethods.filter_methods()
