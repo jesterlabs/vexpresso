@@ -10,11 +10,11 @@ import pandas as pd
 import pyarrow.parquet as pq
 from daft import col
 
-from vexpresso.collection.collection import Collection, Plan
+from vexpresso.collection.collection import Collection
 from vexpresso.collection.daft.filter import FilterHelper
-from vexpresso.collection.daft.utils import Transformation
+from vexpresso.collection.daft.utils import Scope, Transformation, lazy, transformation
 from vexpresso.retriever import NumpyRetriever, Retriever
-from vexpresso.utils import Column, deep_get
+from vexpresso.utils import deep_get
 
 
 @daft.udf(return_dtype=daft.DataType.int64())
@@ -57,10 +57,8 @@ class DaftCollection(Collection):
         metadata: Optional[Union[str, pd.DataFrame]] = None,
         embedding_fn: Transformation = None,
         retriever: Retriever = NumpyRetriever(),
-        plan: List[Plan] = [],
         lazy_start: bool = False,
     ):
-        super().__init__(plan, lazy_start)
         self.df = df
         self.embedding_fn = embedding_fn
         self.retriever = retriever
@@ -86,27 +84,42 @@ class DaftCollection(Collection):
 
             # this logic is a bit messy, probably need to clean it up
             if len(columns) > 0 and self.embedding_fn is not None:
-                collection = self
-                for c in columns:
-                    collection = collection.embed(
-                        column_name=c,
-                        lazy=lazy_start,
-                        embedding_fn=self.embedding_fn,
-                        return_plan=False,
-                    )
+                collection = self.col(*columns).embed(self.embedding_fn).collection
                 self.df = collection.df
-                self.plan = collection.plan
 
             self.df = self.df.with_column(
                 "vexpresso_index", indices(col(self.df.column_names[0]))
             )
 
             if not lazy_start:
-                self.df.collect()
+                self.df = self.df.collect()
 
-    @classmethod
-    def col(cls, name: str) -> Column:
-        return Column(name)
+    @property
+    def column_names(self) -> List[str]:
+        return self.df.column_names
+
+    def col(self, *args) -> Scope:
+        return Scope(columns=args, collection=self)
+
+    def collect(self, in_place: bool = False):
+        if in_place:
+            self.df = self.df.collect()
+            return self
+        return DaftCollection(
+            df=self.df.collect(),
+            embedding_fn=self.embedding_fn,
+            retriever=self.retriever,
+        )
+
+    def execute(self) -> DaftCollection:
+        return self.collect()
+
+    def from_df(self, df: daft.DataFrame):
+        return DaftCollection(
+            df=df,
+            embedding_fn=self.embedding_fn,
+            retriever=self.retriever,
+        )
 
     @classmethod
     def from_collection(cls, collection: DaftCollection, **kwargs) -> DaftCollection:
@@ -114,7 +127,6 @@ class DaftCollection(Collection):
             "df": collection.df,
             "embeddings_fn": collection.embeddings_fn,
             "retriever": collection.retriever,
-            "plan": collection.plan,
             **kwargs,
         }
         return DaftCollection(**kwargs)
@@ -124,18 +136,9 @@ class DaftCollection(Collection):
             "df": self.df,
             "embeddings_fn": self.embeddings_fn,
             "retriever": self.retriever,
-            "plan": self.plan,
             **kwargs,
         }
         return DaftCollection(**kwargs)
-
-    def _from_plan(self, plan: List[Plan]) -> DaftCollection:
-        return DaftCollection(
-            df=self.df,
-            embedding_fn=self.embedding_fn,
-            retriever=self.retriever,
-            plan=plan,
-        )
 
     def to_pandas(self) -> pd.DataFrame:
         collection = self.execute()
@@ -152,51 +155,7 @@ class DaftCollection(Collection):
     def show(self, num_rows: int):
         return self.df.show(num_rows)
 
-    @property
-    def indices(self) -> List[int]:
-        return self.df.select("vexpresso_index").to_pydict()["vexpresso_index"]
-
-    @property
-    def column_names(self) -> List[str]:
-        return self.df.column_names
-
-    def embed(
-        self,
-        *args,
-        column_name: str,
-        lazy: bool = True,
-        embedding_fn: Transformation = None,
-        return_plan: bool = False,
-        **kwargs,
-    ) -> Collection:
-        # reset embedding_fn
-        self.embedding_fn = embedding_fn
-        args = [Column(column_name), *args]
-
-        kwargs = {
-            "to": f"embeddings_{column_name}",
-            "transform": self.embedding_fn,
-            "lazy": lazy,
-            "return_plan": return_plan,
-            **kwargs,
-        }
-        return self.transform(
-            *args,
-            **kwargs,
-        )
-
-    def collect(self, in_place: bool = False):
-        if in_place:
-            self.df = self.df.collect()
-            self.plan = []
-            return self
-        return DaftCollection(
-            df=self.df.collect(),
-            embedding_fn=self.embedding_fn,
-            retriever=self.retriever,
-        )
-
-    def retrieve(
+    def _retrieve(
         self,
         df,
         content_name: str,
@@ -245,17 +204,19 @@ class DaftCollection(Collection):
 
         return df
 
-    def execute_query(
+    @lazy(default=True)
+    def query(
         self,
         query: Dict[str, List[Any]] = {},
         query_embeddings: Dict[str, Any] = {},
+        filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
         k=10,
         *args,
         **kwargs,
     ) -> Collection:
         df = self.df
         for key in query:
-            df = self.retrieve(
+            df = self._retrieve(
                 df=df,
                 content_name=key,
                 query=query.get(key, None),
@@ -265,14 +226,17 @@ class DaftCollection(Collection):
                 **kwargs,
             )
 
+        if filter_conditions is not None:
+            df = FilterHelper.filter(df, filter_conditions)
+
         return DaftCollection(
             df=df,
             embedding_fn=self.embedding_fn,
             retriever=self.retriever,
-            plan=self.plan,
         )
 
-    def execute_select(
+    @lazy(default=True)
+    def select(
         self,
         *args,
     ) -> DaftCollection:
@@ -280,51 +244,79 @@ class DaftCollection(Collection):
             df=FilterHelper.select(self.df, *args),
             embedding_fn=self.embedding_fn,
             retriever=self.retriever,
-            plan=self.plan,
         )
 
-    def execute_filter(
+    @lazy(default=True)
+    def filter(
         self, filter_conditions: Dict[str, Dict[str, str]], *args, **kwargs
     ) -> Collection:
         return DaftCollection(
             df=FilterHelper.filter(self.df, filter_conditions, *args, **kwargs),
             embedding_fn=self.embedding_fn,
             retriever=self.retriever,
-            plan=self.plan,
         )
 
-    def execute_transform(
+    @lazy(default=True)
+    def apply(
         self,
-        *args,
+        column: str,
+        transform_fn: Transformation,
         to: str,
-        transform: Transformation,
+        *args,
         **kwargs,
     ) -> DaftCollection:
         destination = to
 
-        _udf = daft.udf(return_dtype=daft.DataType.python())(transform)
-
-        _args = []
+        _args = [col(column)]
         for c in args:
-            if isinstance(c, Column):
-                _args.append(col(c.name))
-            else:
-                _args.append(c)
+            arg = c
+            if isinstance(arg, str):
+                if arg.startswith("column."):
+                    arg = col(arg.split("column.")[-1])
+            _args.append(arg)
 
         _kwargs = {}
         for k in kwargs:
-            if isinstance(kwargs[k], Column):
-                _kwargs[k] = col(kwargs[k])
-            else:
-                _kwargs[k] = kwargs[k]
+            kwarg = kwargs[k]
+            if isinstance(kwarg, str):
+                if kwarg.startswith("column."):
+                    kwarg = col(kwarg.split("column.")[-1])
+            _kwargs[k] = kwarg
 
-        df = self.df.with_column(destination, _udf(*_args, **_kwargs))
+        if getattr(transform_fn, "__vexpresso_transform", None) is None:
+            transform_fn = transformation(transform_fn)
+
+        df = self.df.with_column(destination, transform_fn(*_args, **_kwargs))
 
         return DaftCollection(
             df=df,
             embedding_fn=self.embedding_fn,
             retriever=self.retriever,
-            plan=self.plan,
+        )
+
+    @lazy(default=True)
+    def embed(
+        self,
+        column: str,
+        embedding_fn: Transformation = None,
+        *args,
+        **kwargs,
+    ) -> DaftCollection:
+        # reset embedding_fn
+        if embedding_fn is None:
+            embedding_fn = self.embedding_fn
+        self.embedding_fn = embedding_fn
+
+        kwargs = {
+            "to": f"embeddings_{column}",
+            **kwargs,
+        }
+
+        return self.apply(
+            column=column,
+            transform_fn=self.embedding_fn,
+            *args,
+            **kwargs,
         )
 
     def save_local(self, directory: str) -> str:

@@ -5,13 +5,10 @@ from vexpresso.collection import (
     transformation,
 )
 from vexpresso.main import create, create_collection
-from vexpresso.utils import Column, col
 
 __all__ = [
     "create",
     "create_collection",
-    "Column",
-    "col",
     "Collection",
     "DaftCollection",
     "Transformation",
