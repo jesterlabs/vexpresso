@@ -1,16 +1,6 @@
 import os
-from dataclasses import dataclass
 from functools import reduce
-from typing import Optional, Tuple
-
-
-@dataclass
-class Column:
-    name: str
-
-
-def col(name: str) -> Column:
-    return Column(name)
+from typing import Any, Callable, List, Optional, Tuple
 
 
 def get_field_name_and_key(field) -> Tuple[str, str]:
@@ -101,3 +91,6 @@ class HFHubHelper:
             *args,
             **kwargs
         )
+
+
+Transformation = Callable[[List[Any], Any], List[Any]]

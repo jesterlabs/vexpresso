@@ -3,29 +3,14 @@ from __future__ import annotations
 import abc
 import os
 import tempfile
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from vexpresso.utils import Column, HFHubHelper
-
-
-@dataclass
-class Plan:
-    function: str
-    args: Iterable[Any]
-    kwargs: Dict[str, Any] = field(default_factory=lambda: {})
+from vexpresso.utils import HFHubHelper, Transformation
 
 
 class Collection(metaclass=abc.ABCMeta):
-    def __init__(self, plan: List[Plan] = [], lazy_start: bool = False):
-        self.plan = plan
-        self.lazy = lazy_start
-
-    def _from_plan(self, plan: List[Plan]) -> Collection:
-        return Collection(plan)
-
     def collect(self) -> Collection:
         """
         Materializes the collection
@@ -63,11 +48,11 @@ class Collection(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def execute_query(
+    def query(
         self,
         query: Dict[str, Any],
         query_embeddings: Dict[str, Any] = {},
-        batch: bool = False,
+        filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
         *args,
         **kwargs,
     ) -> Collection:
@@ -77,10 +62,11 @@ class Collection(metaclass=abc.ABCMeta):
         Args:
             query (Dict[str, Any]): _description_
             query_embeddings (Dict[str, Any], optional): _description_. Defaults to {}.
+            filter_conditions (Dict[str, Dict[str, str]]): _description_
         """
 
     @abc.abstractmethod
-    def execute_select(self, *args) -> Collection:
+    def select(self, columns: List[str]) -> Collection:
         """
         Select method, selects columns
 
@@ -89,7 +75,7 @@ class Collection(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def execute_filter(
+    def filter(
         self, filter_conditions: Dict[str, Dict[str, str]], *args, **kwargs
     ) -> Collection:
         """
@@ -103,123 +89,18 @@ class Collection(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def execute_transform(
+    def apply(
         self,
-        *args: Union[Column, Any],
+        column: str,
+        transform_fn: Transformation,
         to: str,
-        transform: Callable[[List[Any]], List[Any]],
+        *args,
         **kwargs,
     ) -> Collection:
         """
-        Transform method, takes in *args and *kwargs columns and applies a transformation function on them. The transformed columns are in format:
+        Apply method, takes in *args and *kwargs columns and applies a transformation function on them. The transformed columns are in format:
         transformed_{column_name}
         """
-
-    def query(
-        self,
-        query: Dict[str, Any] = {},
-        query_embeddings: Dict[str, Any] = {},
-        filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
-        lazy: bool = True,
-        return_plan: bool = False,
-        *args,
-        **kwargs,
-    ) -> Union[Collection, Plan]:
-        new_plan = self.plan + [
-            Plan(
-                "execute_query",
-                args=args,
-                kwargs={"query": query, "query_embeddings": query_embeddings, **kwargs},
-            )
-        ]
-        if return_plan:
-            return new_plan
-
-        collection = self._from_plan(new_plan)
-        if filter_conditions is not None:
-            collection = collection.filter(filter_conditions, lazy=lazy)
-        if lazy:
-            return collection
-        return collection.execute()
-
-    def select(
-        self,
-        *args,
-        return_plan: bool = False,
-        lazy: bool = False,
-    ) -> Union[Collection, Plan]:
-        new_plan = self.plan + [
-            Plan(
-                "execute_select",
-                args=args,
-            )
-        ]
-        if return_plan:
-            return new_plan
-
-        collection = self._from_plan(new_plan)
-        if lazy:
-            return collection
-        return collection.execute()
-
-    def filter(
-        self,
-        filter_conditions: Dict[str, Dict[str, str]],
-        lazy: bool = True,
-        return_plan: bool = False,
-        *args,
-        **kwargs,
-    ) -> Union[Collection, Plan]:
-        new_plan = self.plan + [
-            Plan(
-                "execute_filter",
-                args=args,
-                kwargs={
-                    "filter_conditions": filter_conditions,
-                    **kwargs,
-                },
-            )
-        ]
-        if return_plan:
-            return new_plan
-
-        collection = self._from_plan(new_plan)
-        if lazy:
-            return collection
-        return collection.execute()
-
-    def transform(
-        self,
-        *args,
-        to: str,
-        transform: Callable[[List[Any]], List[Any]] = None,
-        lazy: bool = True,
-        return_plan: bool = False,
-        **kwargs,
-    ) -> Union[Collection, Plan]:
-        new_plan = self.plan + [
-            Plan(
-                "execute_transform",
-                args=args,
-                kwargs={"transform": transform, "to": to, **kwargs},
-            )
-        ]
-        if return_plan:
-            return new_plan
-
-        collection = self._from_plan(new_plan)
-        if lazy:
-            return collection
-        return collection.execute()
-
-    def execute_plan(self, plan: Plan) -> Collection:
-        return getattr(self, plan.function)(*plan.args, **plan.kwargs)
-
-    def execute(self) -> Collection:
-        collection = self
-        for p in self.plan:
-            collection = collection.execute_plan(p)
-        return collection.collect()
 
     def save(
         self,
