@@ -162,13 +162,12 @@ class DaftCollection(Collection):
         query: Union[str, List[Any]],
         query_embeddings=None,
         k: int = None,
-        *args,
-        **kwargs,
+        embedding_fn_kwargs = {}
     ):
         if query_embeddings is None:
-            query_embeddings = self.embedding_fn.func(query, *args, **kwargs)
+            query_embeddings = self.embedding_fn.func(query, **embedding_fn_kwargs)
 
-        embedding_column_name = f"embeddings_{content_name}"
+        embedding_column_name = content_name
         if embedding_column_name not in self.column_names:
             raise ValueError(
                 f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {content_name}..."
@@ -211,8 +210,7 @@ class DaftCollection(Collection):
         query_embeddings: Dict[str, Any] = {},
         filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
         k=10,
-        *args,
-        **kwargs,
+        embedding_fn_kwargs = {}
     ) -> Collection:
         df = self.df
         for key in query:
@@ -222,8 +220,7 @@ class DaftCollection(Collection):
                 query=query.get(key, None),
                 query_embeddings=query_embeddings.get(key, None),
                 k=k,
-                *args,
-                **kwargs,
+                embedding_fn_kwargs = embedding_fn_kwargs
             )
 
         if filter_conditions is not None:
@@ -259,32 +256,29 @@ class DaftCollection(Collection):
     @lazy(default=True)
     def apply(
         self,
-        column: str,
+        columns: List[str],
         transform_fn: Transformation,
         to: str,
-        *args,
-        **kwargs,
+        fn_kwargs = {},
+        map_columns: bool = True
     ) -> DaftCollection:
         destination = to
 
-        _args = [col(column)]
-        for c in args:
-            arg = c
-            if isinstance(arg, str):
-                if arg.startswith("column."):
-                    arg = col(arg.split("column.")[-1])
-            _args.append(arg)
+        inp = [col(c) for c in columns]
+        if not map_columns:
+            inp = [inp]
 
-        _kwargs = {}
-        for k in kwargs:
-            kwarg = kwargs[k]
-            if isinstance(kwarg, str):
-                if kwarg.startswith("column."):
-                    kwarg = col(kwarg.split("column.")[-1])
-            _kwargs[k] = kwarg
+        for _args in inp:
+            _kwargs = {}
+            for k in fn_kwargs:
+                kwarg = fn_kwargs[k]
+                if isinstance(kwarg, str):
+                    if kwarg.startswith("column."):
+                        kwarg = col(kwarg.split("column.")[-1])
+                _kwargs[k] = kwarg
 
-        if getattr(transform_fn, "__vexpresso_transform", None) is None:
-            transform_fn = transformation(transform_fn)
+            if getattr(transform_fn, "__vexpresso_transform", None) is None:
+                transform_fn = transformation(transform_fn)
 
         df = self.df.with_column(destination, transform_fn(*_args, **_kwargs))
 
