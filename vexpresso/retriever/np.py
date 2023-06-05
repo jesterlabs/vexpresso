@@ -65,7 +65,7 @@ class NumpyRetriever(Retriever):
     ):
         similarities = self._get_similarities(query_embeddings, embeddings)
         top_indices = np.flip(
-            np.argsort(similarities, axis=-1)[:, -k:], axis=-1
+            np.argsort(similarities, axis=-1), axis=-1
         )  # B X k
         return top_indices, similarities
 
@@ -76,7 +76,10 @@ class NumpyRetriever(Retriever):
         k: int = 4,
     ) -> List[RetrievalOutput]:
         embeddings = np.array(embeddings)
-        top_indices, similarities = self._get_top_k(query_embeddings, embeddings, k)
+        similarities = self._get_similarities(query_embeddings, embeddings)
+        top_indices = np.flip(
+            np.argsort(similarities, axis=-1), axis=-1
+        )  # B X k
         # move to list for consistency w/ single and batch calls
         out = []
         for idx in range(top_indices.shape[0]):
