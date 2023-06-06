@@ -12,7 +12,7 @@ from daft import col
 
 from vexpresso.collection.collection import Collection
 from vexpresso.collection.daft.filter import FilterHelper
-from vexpresso.collection.daft.utils import Scope, Transformation, lazy, transformation
+from vexpresso.collection.daft.utils import Transformation, lazy, transformation
 from vexpresso.retriever import NumpyRetriever, Retriever
 
 
@@ -106,9 +106,6 @@ class DaftCollection(Collection):
         new_df = daft.from_pydict({name: column})
         df = self.df.with_column(name, new_df[name])
         return self.from_df(df)
-
-    def col(self, *args) -> Scope:
-        return Scope(columns=args, collection=self)
 
     def collect(self, in_place: bool = False):
         if in_place:

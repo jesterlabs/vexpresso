@@ -46,5 +46,4 @@ def create(
         )
     return collection_class(*args, **kwargs)
 
-
 create_collection = create
