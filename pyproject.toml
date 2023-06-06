@@ -1,0 +1,50 @@
+# https://godatadriven.com/blog/minimal-pyproject-toml-example/
+# https://peps.python.org/pep-0621/
+
+[project]
+name = "vexpresso"
+readme = "README.md"
+version = "0.0.0"
+authors = [
+    { name = "Shyam Sudhakaran", email = "shyamsnair@protonmail.com" }
+]
+dependencies = [
+    'numpy',
+    'pandas',
+    'getdaft',
+    'pyarrow'
+]
+[project.optional-dependencies]
+dev = [
+    "black==22.12.0",
+    "build==0.9.0",
+    "flake8==6.0.0",
+    "Flake8-pyproject==1.1.0.post0",
+    "portray==1.7.0",
+    "pylint==2.17.3",
+    "pyright==1.1.277",
+    "pytest==7.2.0",
+    "pytest-cov==4.0.0",
+]
+
+# https://stackoverflow.com/a/73066937
+# [project.scripts]
+# modern-python-cli = "modern_python_package.cli:main"
+
+# https://github.com/PyCQA/flake8/issues/234
+[tool.flake8]
+max-line-length = 100
+
+[tool.pylint]
+good-names=["rv"]
+
+# https://docs.pytest.org/en/7.1.x/reference/customize.html#pyproject-toml
+[tool.pytest.ini_options]
+addopts = "--cov=vexpresso --junitxml=coverage.xml --cov-fail-under=80"
+
+# https://github.com/microsoft/pyright/blob/main/docs/configuration.md#sample-pyprojecttoml-file
+[tool.pyright]
+exclude = [
+    "test/**"
+]
+

@@ -6,7 +6,7 @@ COLLECTION_TYPES = {
     "daft": DaftCollection,
 }
 
-DEFAULT_COLLECTION = DaftCollection
+DEFAULT_COLLECTION = "daft"
 
 
 def _should_load(
@@ -31,7 +31,9 @@ def create(
     *args,
     **kwargs
 ) -> Collection:
-    collection_class = COLLECTION_TYPES.get(collection_type, DEFAULT_COLLECTION)
+    collection_class = COLLECTION_TYPES.get(
+        collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
+    )
     if _should_load(directory_or_repo_id, hf_username, repo_name):
         return collection_class.load(
             directory_or_repo_id=directory_or_repo_id,
@@ -45,5 +47,6 @@ def create(
             **kwargs
         )
     return collection_class(*args, **kwargs)
+
 
 create_collection = create

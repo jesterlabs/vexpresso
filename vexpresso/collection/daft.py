@@ -11,9 +11,9 @@ import pyarrow.parquet as pq
 from daft import col
 
 from vexpresso.collection.collection import Collection
-from vexpresso.collection.daft.filter import FilterHelper
-from vexpresso.collection.daft.utils import Transformation, lazy, transformation
+from vexpresso.filter import FilterHelper
 from vexpresso.retriever import NumpyRetriever, Retriever
+from vexpresso.utils import Transformation, lazy, transformation
 
 
 @daft.udf(return_dtype=daft.DataType.int64())
