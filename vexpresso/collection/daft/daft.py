@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import daft
 import numpy as np
@@ -14,7 +14,6 @@ from vexpresso.collection.collection import Collection
 from vexpresso.collection.daft.filter import FilterHelper
 from vexpresso.collection.daft.utils import Scope, Transformation, lazy, transformation
 from vexpresso.retriever import NumpyRetriever, Retriever
-from vexpresso.utils import deep_get
 
 
 @daft.udf(return_dtype=daft.DataType.int64())
@@ -83,7 +82,10 @@ class DaftCollection(Collection):
         return self.select(column)
 
     def __setitem__(self, column: str, value: List[Any]) -> None:
-        self.df = self.add_column(column = value, name = column).df
+        self.df = self.add_column(column=value, name=column).df
+
+    def set_embedding_function(self, column: str, embedding_function: Transformation):
+        self.embedding_functions[column] = embedding_function
 
     @property
     def column_names(self) -> List[str]:
@@ -92,7 +94,7 @@ class DaftCollection(Collection):
     def from_df(self, df: daft.DataFrame) -> DaftCollection:
         return DaftCollection(
             retriever=self.retriever,
-            embedding_functions = self.embedding_functions,
+            embedding_functions=self.embedding_functions,
             daft_df=df,
         )
 
@@ -101,7 +103,7 @@ class DaftCollection(Collection):
             num_columns = len(self.df.column_names)
             name = f"column_{num_columns}"
 
-        new_df = daft.from_pydict({name:column})
+        new_df = daft.from_pydict({name: column})
         df = self.df.with_column(name, new_df[name])
         return self.from_df(df)
 
@@ -153,20 +155,38 @@ class DaftCollection(Collection):
     def _retrieve(
         self,
         df,
-        content_name: str,
+        column_name: str,
         query: Union[str, List[Any]],
         query_embeddings=None,
         k: int = None,
-        embedding_fn_kwargs = {}
+        sort=True,
+        embedding_fn: Optional[Transformation] = None,
+        score_column_name: Optional[str] = None,
+        *args,
+        **kwargs,
     ) -> daft.DataFrame:
-        if query_embeddings is None:
-            query_embeddings = self.embedding_fn.func(query, **embedding_fn_kwargs)
+        if embedding_fn is None:
+            embedding_fn = self.embedding_functions[column_name]
+        else:
+            if column_name in self.embedding_functions:
+                if embedding_fn != self.embedding_functions[column_name]:
+                    print("embedding_fn may not be the same as whats in map!")
+            else:
+                self.embedding_functions[column_name] = embedding_fn
 
-        embedding_column_name = content_name
+        if query_embeddings is None:
+            query_embeddings = self.embedding_functions[column_name].func(
+                query, *args, **kwargs
+            )
+
+        embedding_column_name = column_name
         if embedding_column_name not in df.column_names:
             raise ValueError(
-                f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {content_name}..."
+                f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {column_name}..."
             )
+
+        if score_column_name is None:
+            score_column_name = f"{column_name}_score"
 
         df = df.with_column(
             "retrieve_output",
@@ -185,7 +205,7 @@ class DaftCollection(Collection):
                 ),
             )
             .with_column(
-                "score",
+                score_column_name,
                 col("retrieve_output").apply(
                     lambda x: x["retrieve_score"], return_dtype=daft.DataType.float64()
                 ),
@@ -193,39 +213,46 @@ class DaftCollection(Collection):
             .exclude("retrieve_output")
             .where(col("retrieve_index") != -1)
             .exclude("retrieve_index")
-            .sort(col("score"), desc=True)
         )
+        if sort:
+            df = df.sort(col(score_column_name), desc=True)
 
         return df
 
     @lazy(default=True)
+    def sort(self, column, desc=True) -> DaftCollection:
+        return self.from_df(self.df.sort(col(column), desc=desc))
+
+    @lazy(default=True)
     def query(
         self,
-        query:  Dict[str, List[Any]] = {},
-        query_embeddings: Dict[str, List[Any]] = {},
+        column: str,
+        query: List[Any] = None,
+        query_embeddings: Any = None,
         filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
-        k=10,
-        embedding_fn_kwargs = {}
+        k=None,
+        sort=True,
+        embedding_fn: Optional[Transformation] = None,
+        score_column_name: Optional[str] = None,
+        *args,
+        **kwargs,
     ) -> DaftCollection:
         df = self.df
+        if k is None:
+            k = len(self)
 
-        for key in query_embeddings:
-            df = self._retrieve(
-                df=df,
-                content_name=key,
-                query_embeddings=query_embeddings.get(key),
-                k=k,
-                embedding_fn_kwargs = embedding_fn_kwargs
-            )
-
-        for key in query:
-            df = self._retrieve(
-                df=df,
-                content_name=key,
-                query=query.get(key),
-                k=k,
-                embedding_fn_kwargs = embedding_fn_kwargs
-            )
+        df = self._retrieve(
+            df=df,
+            column_name=column,
+            query=query,
+            query_embeddings=query_embeddings,
+            k=k,
+            sort=sort,
+            embedding_fn=embedding_fn,
+            score_column_name=score_column_name,
+            *args,
+            **kwargs,
+        )
 
         if filter_conditions is not None:
             df = FilterHelper.filter(df, filter_conditions)
@@ -244,27 +271,20 @@ class DaftCollection(Collection):
         self, filter_conditions: Dict[str, Dict[str, str]], *args, **kwargs
     ) -> DaftCollection:
         return self.from_df(
-            FilterHelper.filter(
-                self.df,
-                filter_conditions,
-                *args,
-                **kwargs
-            )
+            FilterHelper.filter(self.df, filter_conditions, *args, **kwargs)
         )
 
     @lazy(default=True)
     def apply(
-        self,
-        transform_fn: Transformation,
-        *args,
-        to: Optional[str] = None,
-        **kwargs
+        self, transform_fn: Transformation, *args, to: Optional[str] = None, **kwargs
     ) -> DaftCollection:
         if getattr(transform_fn, "__vexpresso_transform", None) is None:
             transform_fn = transformation(transform_fn)
 
-        if not isinstance(_args[0], DaftCollection):
-            raise TypeError("first args in apply must be a DaftCollection! use `collection['column_name']`")
+        if not isinstance(args[0], DaftCollection):
+            raise TypeError(
+                "first args in apply must be a DaftCollection! use `collection['column_name']`"
+            )
 
         _args = []
         for _arg in args:
@@ -277,28 +297,32 @@ class DaftCollection(Collection):
         _kwargs = {}
         for k in kwargs:
             _kwargs[k] = kwargs[k]
-            if isinstance(_kwargs[k] , DaftCollection):
+            if isinstance(_kwargs[k], DaftCollection):
                 # only support first column
                 column = _kwargs[k].df.columns[0]
                 _kwargs[k] = column
 
         if to is None:
-            to = _args[0].name()
+            to = f"tranformed_{_args[0].name()}"
 
-        df = df.with_column(to, transform_fn(*_args, **_kwargs))
+        df = self.df.with_column(to, transform_fn(*_args, **_kwargs))
         return self.from_df(df)
 
     @lazy(default=True)
     def embed(
         self,
+        column_name: str,
         content: Optional[List[Any]] = None,
-        column_name: Optional[str] = None,
         embedding_fn: Optional[Transformation] = None,
         update_embedding_fn: bool = True,
+        to: Optional[str] = None,
         *args,
-        **kwargs
+        **kwargs,
     ) -> DaftCollection:
         collection = self
+
+        if to is None:
+            to = f"embeddings_{column_name}"
 
         if content is None and column_name is None:
             raise ValueError("column_name or content must be specified!")
@@ -307,28 +331,26 @@ class DaftCollection(Collection):
             collection = self.add_column(content, column_name)
 
         if embedding_fn is None:
-            embedding_fn = self.embedding_functions[column_name]
+            embedding_fn = self.embedding_functions[to]
         else:
-            if column_name in embedding_fn:
-                if embedding_fn != self.embedding_functions[column_name]:
+            if to in self.embedding_functions:
+                if embedding_fn != self.embedding_functions[to]:
                     print("embedding_fn may not be the same as whats in map!")
                 if update_embedding_fn:
-                    self.embedding_functions[column_name] = embedding_fn
+                    self.embedding_functions[to] = embedding_fn
+            else:
+                self.embedding_functions[to] = embedding_fn
 
-        if getattr(self.embedding_functions[column_name], "__vexpresso_transform", None) is None:
-            self.embedding_functions[column_name] = transformation(self.embedding_functions[column_name])
+        if getattr(self.embedding_functions[to], "__vexpresso_transform", None) is None:
+            self.embedding_functions[to] = transformation(self.embedding_functions[to])
 
-        kwargs = {
-            "to": f"embeddings_{column_name}",
-            **kwargs,
-        }
-
-        args = [self.collection[column_name], *args]
+        args = [self[column_name], *args]
 
         return collection.apply(
+            self.embedding_functions[to],
             *args,
+            to=to,
             **kwargs,
-            transform_fn=self.embedding_functions[column_name],
         )
 
     def save_local(self, directory: str) -> str:
@@ -337,6 +359,6 @@ class DaftCollection(Collection):
         pq.write_table(table, os.path.join(directory, "content.parquet"))
 
     @classmethod
-    def from_local_dir(self, local_dir: str, *args, **kwargs) -> DaftCollection:
+    def from_local_dir(cls, local_dir: str, *args, **kwargs) -> DaftCollection:
         df = daft.read_parquet(os.path.join(local_dir, "content.parquet"))
-        return DaftCollection(df=df, *args, **kwargs)
+        return DaftCollection(daft_df=df, *args, **kwargs)
