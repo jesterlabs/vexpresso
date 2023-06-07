@@ -8,6 +8,7 @@ import daft
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+import ray
 from daft import col
 
 from vexpresso.collection import Collection
@@ -69,7 +70,7 @@ class DaftCollection(Collection):
                         data = pd.DataFrame(json.load(f))
             _metadata_dict = data.to_dict("list")
 
-        if daft_df is None:
+        if daft_df is None and len(_metadata_dict) > 0:
             self.df = daft.from_pydict({**_metadata_dict})
             self.df = self.df.with_column(
                 "vexpresso_index", indices(col(self.column_names[0]))
@@ -119,8 +120,8 @@ class DaftCollection(Collection):
     @classmethod
     def from_collection(cls, collection: DaftCollection, **kwargs) -> DaftCollection:
         kwargs = {
-            "daft_df": daft.df,
-            "retriever": daft.retriever,
+            "daft_df": collection.df,
+            "retriever": collection.retriever,
             **kwargs,
         }
         return DaftCollection(**kwargs)
@@ -359,3 +360,14 @@ class DaftCollection(Collection):
     def from_local_dir(cls, local_dir: str, *args, **kwargs) -> DaftCollection:
         df = daft.read_parquet(os.path.join(local_dir, "content.parquet"))
         return DaftCollection(daft_df=df, *args, **kwargs)
+
+    @classmethod
+    def connect(
+        cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+    ) -> DaftCollection:
+        if address is None:
+            addy = ray.init(**cluster_kwargs)
+        else:
+            addy = ray.init(address=address, **cluster_kwargs)
+        daft.context.set_runner_ray(address=addy.address_info["address"])
+        return DaftCollection(*args, **kwargs)

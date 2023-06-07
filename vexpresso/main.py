@@ -29,12 +29,16 @@ def create(
     hf_username: Optional[str] = None,
     repo_name: Optional[str] = None,
     hub_download_kwargs: Optional[Dict[str, Any]] = {},
+    cluster_address: Optional[str] = None,
+    cluster_kwargs: Dict[str, Any] = {},
     *args,
     **kwargs
 ) -> Collection:
     collection_class = COLLECTION_TYPES.get(
         collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
     )
+    _ = collection_class.connect(cluster_address, cluster_kwargs)
+
     if _should_load(directory_or_repo_id, hf_username, repo_name):
         return collection_class.load(
             directory_or_repo_id=directory_or_repo_id,
@@ -47,7 +51,8 @@ def create(
             *args,
             **kwargs
         )
-    return collection_class(*args, **kwargs)
+    collection = collection_class(*args, **kwargs)
+    return collection
 
 
 create_collection = create

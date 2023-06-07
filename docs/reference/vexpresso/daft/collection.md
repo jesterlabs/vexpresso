@@ -17,6 +17,8 @@
 
         import pyarrow.parquet as pq
 
+        import ray
+
         from daft import col
 
         from vexpresso.collection import Collection
@@ -117,7 +119,7 @@
 
                     _metadata_dict = data.to_dict("list")
 
-                if daft_df is None:
+                if daft_df is None and len(_metadata_dict) > 0:
 
                     self.df = daft.from_pydict({**_metadata_dict})
 
@@ -195,9 +197,9 @@
 
                 kwargs = {
 
-                    "daft_df": daft.df,
+                    "daft_df": collection.df,
 
-                    "retriever": daft.retriever,
+                    "retriever": collection.retriever,
 
                     **kwargs,
 
@@ -607,6 +609,26 @@
 
                 return DaftCollection(daft_df=df, *args, **kwargs)
 
+            @classmethod
+
+            def connect(
+
+                cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+
+            ) -> DaftCollection:
+
+                if address is None:
+
+                    addy = ray.init(**cluster_kwargs)
+
+                else:
+
+                    addy = ray.init(address=address, **cluster_kwargs)
+
+                daft.context.set_runner_ray(address=addy.address_info["address"])
+
+                return DaftCollection(*args, **kwargs)
+
 ## Variables
 
 ```python3
@@ -643,7 +665,7 @@ def embed(
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame]]' = None,
-    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7f81f2b980d0>,
+    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7fa3c9a4e8e0>,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None
 )
@@ -686,7 +708,7 @@ class DaftCollection(
 
                     _metadata_dict = data.to_dict("list")
 
-                if daft_df is None:
+                if daft_df is None and len(_metadata_dict) > 0:
 
                     self.df = daft.from_pydict({**_metadata_dict})
 
@@ -764,9 +786,9 @@ class DaftCollection(
 
                 kwargs = {
 
-                    "daft_df": daft.df,
+                    "daft_df": collection.df,
 
-                    "retriever": daft.retriever,
+                    "retriever": collection.retriever,
 
                     **kwargs,
 
@@ -1176,6 +1198,26 @@ class DaftCollection(
 
                 return DaftCollection(daft_df=df, *args, **kwargs)
 
+            @classmethod
+
+            def connect(
+
+                cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+
+            ) -> DaftCollection:
+
+                if address is None:
+
+                    addy = ray.init(**cluster_kwargs)
+
+                else:
+
+                    addy = ray.init(address=address, **cluster_kwargs)
+
+                daft.context.set_runner_ray(address=addy.address_info["address"])
+
+                return DaftCollection(*args, **kwargs)
+
 ------
 
 #### Ancestors (in MRO)
@@ -1183,6 +1225,39 @@ class DaftCollection(
 * vexpresso.collection.Collection
 
 #### Static methods
+
+    
+#### connect
+
+```python3
+def connect(
+    address: 'str' = None,
+    cluster_kwargs: 'Dict[str, Any]' = {},
+    *args,
+    **kwargs
+) -> 'DaftCollection'
+```
+
+??? example "View Source"
+            @classmethod
+
+            def connect(
+
+                cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+
+            ) -> DaftCollection:
+
+                if address is None:
+
+                    addy = ray.init(**cluster_kwargs)
+
+                else:
+
+                    addy = ray.init(address=address, **cluster_kwargs)
+
+                daft.context.set_runner_ray(address=addy.address_info["address"])
+
+                return DaftCollection(*args, **kwargs)
 
     
 #### from_collection
@@ -1201,9 +1276,9 @@ def from_collection(
 
                 kwargs = {
 
-                    "daft_df": daft.df,
+                    "daft_df": collection.df,
 
-                    "retriever": daft.retriever,
+                    "retriever": collection.retriever,
 
                     **kwargs,
 

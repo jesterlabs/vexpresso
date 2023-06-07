@@ -401,6 +401,16 @@
 
                 )
 
+            @classmethod
+
+            def connect(
+
+                cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+
+            ) -> Collection:
+
+                return None
+
 ## Classes
 
 ### Collection
@@ -798,6 +808,16 @@ class Collection(
 
                 )
 
+            @classmethod
+
+            def connect(
+
+                cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+
+            ) -> Collection:
+
+                return None
+
 ------
 
 #### Descendants
@@ -805,6 +825,29 @@ class Collection(
 * vexpresso.daft.collection.DaftCollection
 
 #### Static methods
+
+    
+#### connect
+
+```python3
+def connect(
+    address: 'str' = None,
+    cluster_kwargs: 'Dict[str, Any]' = {},
+    *args,
+    **kwargs
+) -> 'Collection'
+```
+
+??? example "View Source"
+            @classmethod
+
+            def connect(
+
+                cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+
+            ) -> Collection:
+
+                return None
 
     
 #### from_saved
