@@ -222,3 +222,9 @@ class Collection(metaclass=abc.ABCMeta):
             *args,
             **kwargs,
         )
+
+    @classmethod
+    def connect(
+        cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
+    ) -> Collection:
+        return None

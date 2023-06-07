@@ -53,6 +53,10 @@
 
             hub_download_kwargs: Optional[Dict[str, Any]] = {},
 
+            cluster_address: Optional[str] = None,
+
+            cluster_kwargs: Dict[str, Any] = {},
+
             *args,
 
             **kwargs
@@ -64,6 +68,8 @@
                 collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
 
             )
+
+            _ = collection_class.connect(cluster_address, cluster_kwargs)
 
             if _should_load(directory_or_repo_id, hf_username, repo_name):
 
@@ -89,7 +95,9 @@
 
                 )
 
-            return collection_class(*args, **kwargs)
+            collection = collection_class(*args, **kwargs)
+
+            return collection
 
         
 
@@ -120,6 +128,8 @@ def create(
     hf_username: Optional[str] = None,
     repo_name: Optional[str] = None,
     hub_download_kwargs: Optional[Dict[str, Any]] = {},
+    cluster_address: Optional[str] = None,
+    cluster_kwargs: Dict[str, Any] = {},
     *args,
     **kwargs
 ) -> vexpresso.collection.Collection
@@ -144,6 +154,10 @@ def create(
 
             hub_download_kwargs: Optional[Dict[str, Any]] = {},
 
+            cluster_address: Optional[str] = None,
+
+            cluster_kwargs: Dict[str, Any] = {},
+
             *args,
 
             **kwargs
@@ -155,6 +169,8 @@ def create(
                 collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
 
             )
+
+            _ = collection_class.connect(cluster_address, cluster_kwargs)
 
             if _should_load(directory_or_repo_id, hf_username, repo_name):
 
@@ -180,7 +196,9 @@ def create(
 
                 )
 
-            return collection_class(*args, **kwargs)
+            collection = collection_class(*args, **kwargs)
+
+            return collection
 
     
 ### create_collection
@@ -195,6 +213,8 @@ def create_collection(
     hf_username: Optional[str] = None,
     repo_name: Optional[str] = None,
     hub_download_kwargs: Optional[Dict[str, Any]] = {},
+    cluster_address: Optional[str] = None,
+    cluster_kwargs: Dict[str, Any] = {},
     *args,
     **kwargs
 ) -> vexpresso.collection.Collection
@@ -219,6 +239,10 @@ def create_collection(
 
             hub_download_kwargs: Optional[Dict[str, Any]] = {},
 
+            cluster_address: Optional[str] = None,
+
+            cluster_kwargs: Dict[str, Any] = {},
+
             *args,
 
             **kwargs
@@ -230,6 +254,8 @@ def create_collection(
                 collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
 
             )
+
+            _ = collection_class.connect(cluster_address, cluster_kwargs)
 
             if _should_load(directory_or_repo_id, hf_username, repo_name):
 
@@ -255,4 +281,6 @@ def create_collection(
 
                 )
 
-            return collection_class(*args, **kwargs)
+            collection = collection_class(*args, **kwargs)
+
+            return collection
