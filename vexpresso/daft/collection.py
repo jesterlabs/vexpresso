@@ -428,14 +428,25 @@ class DaftCollection(Collection):
                 dictionary = self.collection.query(
                     self.embeddings_column, query=query, k=k, lazy=False, **kwargs
                 ).to_dict()
-                documents = dictionary[self.column]
-                metadatas = {k: dictionary[k] for k in dictionary if k != self.column}
+                documents = dictionary[self.document_column]
+                metadatas = {
+                    k: dictionary[k] for k in dictionary if k != self.document_column
+                }
 
                 out = []
                 for i in range(len(documents)):
                     doc = documents[i]
                     d = {k: metadatas[k][i] for k in metadatas}
-                    out.append(Document(doc, d))
+                    out.append(Document(page_content=doc, metadata=d))
                 return out
+
+            @classmethod
+            def from_texts(
+                cls,
+                *args,
+                **kwargs: Any,
+            ):
+                """Return VectorStore initialized from texts and embeddings."""
+                return None
 
         return VexpressoVectorStore(self)

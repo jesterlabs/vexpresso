@@ -16,7 +16,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame]]' = None,
-    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7f1747bd5bb0>,
+    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7f00420b3850>,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None
 )
@@ -665,9 +665,13 @@ class DaftCollection(
 
                         ).to_dict()
 
-                        documents = dictionary[self.column]
+                        documents = dictionary[self.document_column]
 
-                        metadatas = {k: dictionary[k] for k in dictionary if k != self.column}
+                        metadatas = {
+
+                            k: dictionary[k] for k in dictionary if k != self.document_column
+
+                        }
 
                         out = []
 
@@ -677,9 +681,25 @@ class DaftCollection(
 
                             d = {k: metadatas[k][i] for k in metadatas}
 
-                            out.append(Document(doc, d))
+                            out.append(Document(page_content=doc, metadata=d))
 
                         return out
+
+                    @classmethod
+
+                    def from_texts(
+
+                        cls,
+
+                        *args,
+
+                        **kwargs: Any,
+
+                    ):
+
+                        """Return VectorStore initialized from texts and embeddings."""
+
+                        return None
 
                 return VexpressoVectorStore(self)
 
@@ -1754,9 +1774,13 @@ def to_langchain(
 
                         ).to_dict()
 
-                        documents = dictionary[self.column]
+                        documents = dictionary[self.document_column]
 
-                        metadatas = {k: dictionary[k] for k in dictionary if k != self.column}
+                        metadatas = {
+
+                            k: dictionary[k] for k in dictionary if k != self.document_column
+
+                        }
 
                         out = []
 
@@ -1766,9 +1790,25 @@ def to_langchain(
 
                             d = {k: metadatas[k][i] for k in metadatas}
 
-                            out.append(Document(doc, d))
+                            out.append(Document(page_content=doc, metadata=d))
 
                         return out
+
+                    @classmethod
+
+                    def from_texts(
+
+                        cls,
+
+                        *args,
+
+                        **kwargs: Any,
+
+                    ):
+
+                        """Return VectorStore initialized from texts and embeddings."""
+
+                        return None
 
                 return VexpressoVectorStore(self)
 
