@@ -29,6 +29,7 @@ class FaissRetriever(Retriever):
         embeddings: np.ndarray,
         k: int = 4,
     ) -> List[RetrievalOutput]:
+        query_embeddings = np.array(query_embeddings)
         self._setup_index(embeddings)
         distances, indices = self.index.search(query_embeddings.astype(np.float32), k=k)
         out = []

@@ -14,7 +14,13 @@ from daft import col
 from vexpresso.collection import Collection
 from vexpresso.filter import FilterHelper
 from vexpresso.retriever import NumpyRetriever, Retriever
-from vexpresso.utils import Document, Transformation, lazy, transformation
+from vexpresso.utils import (
+    Document,
+    ResourceRequest,
+    Transformation,
+    lazy,
+    transformation,
+)
 
 
 @daft.udf(return_dtype=daft.DataType.int64())
@@ -45,7 +51,6 @@ def _retrieve(embedding_col, query_embeddings, retriever, k):
 
     for idx in indices:
         results[idx]["retrieve_index"] = idx
-
     return results
 
 
@@ -67,7 +72,7 @@ class DaftCollection(Collection):
             if isinstance(data, str):
                 if data.endswith(".json"):
                     with open(data, "r") as f:
-                        data = pd.DataFrame(json.load(f))
+                        _metadata = pd.DataFrame(json.load(f))
             elif isinstance(data, pd.DataFrame):
                 _metadata = data.to_dict("list")
             else:
@@ -174,38 +179,16 @@ class DaftCollection(Collection):
     def _retrieve(
         self,
         df,
-        column_name: str,
-        query: Union[str, List[Any]],
-        query_embeddings=None,
+        embedding_column_name: str,
+        query_embeddings,
         k: int = None,
         sort=True,
-        embedding_fn: Optional[Transformation] = None,
         score_column_name: Optional[str] = None,
-        *args,
-        **kwargs,
+        resource_request=ResourceRequest(),
     ) -> daft.DataFrame:
-        if embedding_fn is None:
-            embedding_fn = self.embedding_functions[column_name]
-        else:
-            if column_name in self.embedding_functions:
-                if embedding_fn != self.embedding_functions[column_name]:
-                    print("embedding_fn may not be the same as whats in map!")
-            else:
-                self.embedding_functions[column_name] = embedding_fn
-
-        if query_embeddings is None:
-            query_embeddings = self.embedding_functions[column_name].func(
-                query, *args, **kwargs
-            )
-
-        embedding_column_name = column_name
-        if embedding_column_name not in df.column_names:
-            raise ValueError(
-                f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {column_name}..."
-            )
 
         if score_column_name is None:
-            score_column_name = f"{column_name}_score"
+            score_column_name = f"{embedding_column_name}_score"
 
         df = df.with_column(
             "retrieve_output",
@@ -215,6 +198,7 @@ class DaftCollection(Collection):
                 k=k,
                 retriever=self.retriever,
             ),
+            resource_request=resource_request,
         )
         df = (
             df.with_column(
@@ -253,6 +237,7 @@ class DaftCollection(Collection):
         sort=True,
         embedding_fn: Optional[Transformation] = None,
         score_column_name: Optional[str] = None,
+        resource_request=ResourceRequest(),
         *args,
         **kwargs,
     ) -> DaftCollection:
@@ -260,17 +245,41 @@ class DaftCollection(Collection):
         if k is None:
             k = len(self)
 
+        if embedding_fn is None:
+            embedding_fn = self.embedding_functions[column]
+        else:
+            if column in self.embedding_functions:
+                if embedding_fn != self.embedding_functions[column]:
+                    print("embedding_fn may not be the same as whats in map!")
+            else:
+                self.embedding_functions[column] = embedding_fn
+
+        if query_embeddings is None:
+            query_embeddings = (
+                daft.from_pydict({"queries": [query]})
+                .with_column(
+                    "query_embeddings",
+                    self.embedding_functions[column](col("queries"), *args, **kwargs),
+                    resource_request=resource_request,
+                )
+                .select("query_embeddings")
+                .collect()
+                .to_pydict()["query_embeddings"]
+            )
+
+        embedding_column_name = column
+        if embedding_column_name not in df.column_names:
+            raise ValueError(
+                f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {column}..."
+            )
+
         df = self._retrieve(
             df=df,
-            column_name=column,
-            query=[query],
+            embedding_column_name=column,
             query_embeddings=query_embeddings,
             k=k,
             sort=sort,
-            embedding_fn=embedding_fn,
             score_column_name=score_column_name,
-            *args,
-            **kwargs,
         )
 
         if filter_conditions is not None:
@@ -302,7 +311,12 @@ class DaftCollection(Collection):
 
     @lazy(default=True)
     def apply(
-        self, transform_fn: Transformation, *args, to: Optional[str] = None, **kwargs
+        self,
+        transform_fn: Transformation,
+        *args,
+        to: Optional[str] = None,
+        resource_request: ResourceRequest = ResourceRequest(),
+        **kwargs,
     ) -> DaftCollection:
         if getattr(transform_fn, "__vexpresso_transform", None) is None:
             transform_fn = transformation(transform_fn)
@@ -331,7 +345,9 @@ class DaftCollection(Collection):
         if to is None:
             to = f"tranformed_{_args[0].name()}"
 
-        df = self.df.with_column(to, transform_fn(*_args, **_kwargs))
+        df = self.df.with_column(
+            to, transform_fn(*_args, **_kwargs), resource_request=resource_request
+        )
         return self.from_df(df)
 
     @lazy(default=True)
@@ -342,6 +358,7 @@ class DaftCollection(Collection):
         embedding_fn: Optional[Transformation] = None,
         update_embedding_fn: bool = True,
         to: Optional[str] = None,
+        resource_request: ResourceRequest = ResourceRequest(),
         *args,
         **kwargs,
     ) -> DaftCollection:
@@ -376,6 +393,7 @@ class DaftCollection(Collection):
             self.embedding_functions[to],
             *args,
             to=to,
+            resource_request=resource_request,
             **kwargs,
         )
 

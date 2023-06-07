@@ -9,6 +9,8 @@ from typing import Any, Callable, List, Optional, Tuple
 
 import daft
 
+ResourceRequest = daft.resource_request.ResourceRequest
+
 
 # LANGCHAIN
 @dataclass
@@ -61,27 +63,63 @@ def convert_kwargs(**kwargs):
 DATATYPES = {"python": daft.DataType.python}
 
 
+class TransformationWrapper:
+    def __init__(
+        self,
+        original_transform: Transformation = None,
+        datatype: str = "python",
+        init_kwargs={},
+    ):
+        self.original_transform = original_transform
+        self.datatype = datatype
+
+        if not inspect.isclass(self.original_transform):
+
+            def _decorate(function: Transformation):
+                @wraps(function)
+                def wrapped(*args, **kwargs):
+                    args = convert_args(*args)
+                    kwargs = convert_kwargs(**kwargs)
+                    return function(*args, **kwargs)
+
+                wrapped.__signature__ = inspect.signature(function)
+
+                daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
+                _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
+                _udf.__vexpresso_transform = True
+                return _udf
+
+            self.transform = _decorate(original_transform)
+        else:
+            daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
+
+            @daft.udf(return_dtype=daft_datatype())
+            class _Transformation:
+                def __init__(self):
+                    self._transform = original_transform(**init_kwargs)
+
+                def __call__(self, *args, **kwargs):
+                    args = convert_args(*args)
+                    kwargs = convert_kwargs(**kwargs)
+                    return self._transform(*args, **kwargs)
+
+            _Transformation.__vexpresso_transform = True
+            _Transformation.__call__.__signature__ = inspect.signature(
+                original_transform.__call__
+            )
+
+            self.transform = _Transformation
+
+
 def transformation(
-    original_function: Transformation = None, *, datatype: str = "python"
+    original_function: Transformation = None,
+    datatype: str = "python",
+    init_kwargs={},
 ):
-    def _decorate(function: Transformation):
-        @wraps(function)
-        def wrapped(*args, **kwargs):
-            args = convert_args(*args)
-            kwargs = convert_kwargs(**kwargs)
-            return function(*args, **kwargs)
-
-        wrapped.__signature__ = inspect.signature(function)
-
-        daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
-        _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
-        _udf.__vexpresso_transform = True
-        return _udf
-
-    if original_function:
-        return _decorate(original_function)
-
-    return _decorate
+    wrapper = TransformationWrapper(
+        original_function, datatype=datatype, init_kwargs=init_kwargs
+    )
+    return wrapper.transform
 
 
 def get_field_name_and_key(field) -> Tuple[str, str]:
