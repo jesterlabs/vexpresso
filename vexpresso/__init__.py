@@ -1,4 +1,5 @@
-from vexpresso.collection import Collection, DaftCollection
+from vexpresso.collection import Collection
+from vexpresso.daft import DaftCollection
 from vexpresso.main import create, create_collection
 from vexpresso.utils import Transformation, transformation
 

@@ -3,7 +3,9 @@
 ??? example "View Source"
         from typing import Any, Dict, Optional
 
-        from vexpresso.collection import Collection, DaftCollection
+        from vexpresso.collection import Collection
+
+        from vexpresso.daft import DaftCollection
 
         COLLECTION_TYPES = {
 
@@ -120,7 +122,7 @@ def create(
     hub_download_kwargs: Optional[Dict[str, Any]] = {},
     *args,
     **kwargs
-) -> vexpresso.collection.collection.Collection
+) -> vexpresso.collection.Collection
 ```
 
 ??? example "View Source"
@@ -195,7 +197,7 @@ def create_collection(
     hub_download_kwargs: Optional[Dict[str, Any]] = {},
     *args,
     **kwargs
-) -> vexpresso.collection.collection.Collection
+) -> vexpresso.collection.Collection
 ```
 
 ??? example "View Source"

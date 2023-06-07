@@ -10,7 +10,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 from daft import col
 
-from vexpresso.collection.collection import Collection
+from vexpresso.collection import Collection
 from vexpresso.filter import FilterHelper
 from vexpresso.retriever import NumpyRetriever, Retriever
 from vexpresso.utils import Transformation, lazy, transformation
@@ -119,8 +119,8 @@ class DaftCollection(Collection):
     @classmethod
     def from_collection(cls, collection: DaftCollection, **kwargs) -> DaftCollection:
         kwargs = {
-            "daft_df": collection.df,
-            "retriever": collection.retriever,
+            "daft_df": daft.df,
+            "retriever": daft.retriever,
             **kwargs,
         }
         return DaftCollection(**kwargs)
@@ -241,7 +241,7 @@ class DaftCollection(Collection):
         df = self._retrieve(
             df=df,
             column_name=column,
-            query=query,
+            query=[query],
             query_embeddings=query_embeddings,
             k=k,
             sort=sort,
