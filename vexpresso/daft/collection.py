@@ -14,7 +14,7 @@ from daft import col
 from vexpresso.collection import Collection
 from vexpresso.filter import FilterHelper
 from vexpresso.retriever import NumpyRetriever, Retriever
-from vexpresso.utils import Transformation, lazy, transformation
+from vexpresso.utils import Document, Transformation, lazy, transformation
 
 
 @daft.udf(return_dtype=daft.DataType.int64())
@@ -61,7 +61,7 @@ class DaftCollection(Collection):
         self.retriever = retriever
         self.embedding_functions = embedding_functions
 
-        _metadata_dict = {}
+        _metadata = {}
 
         if data is not None:
             if isinstance(data, str):
@@ -69,12 +69,15 @@ class DaftCollection(Collection):
                     with open(data, "r") as f:
                         data = pd.DataFrame(json.load(f))
             elif isinstance(data, pd.DataFrame):
-                _metadata_dict = data.to_dict("list")
+                _metadata = data.to_dict("list")
             else:
-                _metadata_dict = data
+                _metadata = data
 
-        if daft_df is None and len(_metadata_dict) > 0:
-            self.df = daft.from_pydict({**_metadata_dict})
+        if daft_df is None and len(_metadata) > 0:
+            if isinstance(_metadata, list):
+                self.df = daft.from_pylist(_metadata)
+            else:
+                self.df = daft.from_pydict({**_metadata})
             self.df = self.df.with_column(
                 "vexpresso_index", indices(col(self.column_names[0]))
             )
@@ -450,3 +453,11 @@ class DaftCollection(Collection):
                 return None
 
         return VexpressoVectorStore(self)
+
+    @classmethod
+    def from_documents(
+        cls, documents: List[Document], *args, **kwargs
+    ) -> DaftCollection:
+        # for langchain integration
+        raw = [{"text": d.page_content, **d.metadata} for d in documents]
+        return DaftCollection(data=raw, *args, **kwargs)

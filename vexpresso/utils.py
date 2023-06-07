@@ -3,10 +3,20 @@ from __future__ import annotations
 import inspect
 import os
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 from functools import reduce, wraps
 from typing import Any, Callable, List, Optional, Tuple
 
 import daft
+
+
+# LANGCHAIN
+@dataclass
+class Document:
+    """Interface for interacting with a document."""
+
+    page_content: str
+    metadata: dict = field(default_factory=dict)
 
 
 def batchify_args(args, batch_size):

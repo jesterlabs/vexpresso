@@ -1,6 +1,6 @@
 # Welcome to Vexpresso
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+Vexpresso is a quick, easy to use, and scalable vector database built on [Daft](https://www.getdaft.io/)
 
 ## Commands
 
