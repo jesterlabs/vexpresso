@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 
-from vexpresso.collection import Collection, DaftCollection
+from vexpresso.collection import Collection
+from vexpresso.daft import DaftCollection
 
 COLLECTION_TYPES = {
     "daft": DaftCollection,

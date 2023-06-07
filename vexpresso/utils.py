@@ -2,10 +2,20 @@ from __future__ import annotations
 
 import inspect
 import os
+from collections.abc import Iterable
 from functools import reduce, wraps
 from typing import Any, Callable, List, Optional, Tuple
 
 import daft
+
+
+def batchify_args(args, batch_size):
+    if isinstance(args, Iterable) and not isinstance(args, str):
+        if len(args) != batch_size:
+            raise ValueError("ARG needs to be size batch size")
+    else:
+        args = [args for _ in range(batch_size)]
+    return args
 
 
 def lazy(default: bool = True):
