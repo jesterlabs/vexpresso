@@ -53,6 +53,8 @@
 
             hub_download_kwargs: Optional[Dict[str, Any]] = {},
 
+            backend: str = "python",
+
             cluster_address: Optional[str] = None,
 
             cluster_kwargs: Dict[str, Any] = {},
@@ -63,13 +65,21 @@
 
         ) -> Collection:
 
+            BACKEND_SET = {"python", "ray"}
+
             collection_class = COLLECTION_TYPES.get(
 
                 collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
 
             )
 
-            _ = collection_class.connect(cluster_address, cluster_kwargs)
+            if backend not in BACKEND_SET:
+
+                backend = "python"
+
+            if backend == "ray":
+
+                _ = collection_class.connect(cluster_address, cluster_kwargs)
 
             if _should_load(directory_or_repo_id, hf_username, repo_name):
 
@@ -128,6 +138,7 @@ def create(
     hf_username: Optional[str] = None,
     repo_name: Optional[str] = None,
     hub_download_kwargs: Optional[Dict[str, Any]] = {},
+    backend: str = 'python',
     cluster_address: Optional[str] = None,
     cluster_kwargs: Dict[str, Any] = {},
     *args,
@@ -154,6 +165,8 @@ def create(
 
             hub_download_kwargs: Optional[Dict[str, Any]] = {},
 
+            backend: str = "python",
+
             cluster_address: Optional[str] = None,
 
             cluster_kwargs: Dict[str, Any] = {},
@@ -164,13 +177,21 @@ def create(
 
         ) -> Collection:
 
+            BACKEND_SET = {"python", "ray"}
+
             collection_class = COLLECTION_TYPES.get(
 
                 collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
 
             )
 
-            _ = collection_class.connect(cluster_address, cluster_kwargs)
+            if backend not in BACKEND_SET:
+
+                backend = "python"
+
+            if backend == "ray":
+
+                _ = collection_class.connect(cluster_address, cluster_kwargs)
 
             if _should_load(directory_or_repo_id, hf_username, repo_name):
 
@@ -213,6 +234,7 @@ def create_collection(
     hf_username: Optional[str] = None,
     repo_name: Optional[str] = None,
     hub_download_kwargs: Optional[Dict[str, Any]] = {},
+    backend: str = 'python',
     cluster_address: Optional[str] = None,
     cluster_kwargs: Dict[str, Any] = {},
     *args,
@@ -239,6 +261,8 @@ def create_collection(
 
             hub_download_kwargs: Optional[Dict[str, Any]] = {},
 
+            backend: str = "python",
+
             cluster_address: Optional[str] = None,
 
             cluster_kwargs: Dict[str, Any] = {},
@@ -249,13 +273,21 @@ def create_collection(
 
         ) -> Collection:
 
+            BACKEND_SET = {"python", "ray"}
+
             collection_class = COLLECTION_TYPES.get(
 
                 collection_type, COLLECTION_TYPES[DEFAULT_COLLECTION]
 
             )
 
-            _ = collection_class.connect(cluster_address, cluster_kwargs)
+            if backend not in BACKEND_SET:
+
+                backend = "python"
+
+            if backend == "ray":
+
+                _ = collection_class.connect(cluster_address, cluster_kwargs)
 
             if _should_load(directory_or_repo_id, hf_username, repo_name):
 

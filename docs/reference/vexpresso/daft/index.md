@@ -16,7 +16,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame]]' = None,
-    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7fa3c9a4e8e0>,
+    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7f1747bd5bb0>,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None
 )
@@ -57,7 +57,13 @@ class DaftCollection(
 
                                 data = pd.DataFrame(json.load(f))
 
-                    _metadata_dict = data.to_dict("list")
+                    elif isinstance(data, pd.DataFrame):
+
+                        _metadata_dict = data.to_dict("list")
+
+                    else:
+
+                        _metadata_dict = data
 
                 if daft_df is None and len(_metadata_dict) > 0:
 
@@ -81,6 +87,20 @@ class DaftCollection(
 
                 self.df = self.add_column(column=value, name=column).df
 
+            def add_rows(self, data: List[Dict[str, Any]]) -> DaftCollection:
+
+                dic = self.to_dict()
+
+                for k in dic:
+
+                    for d in data:
+
+                        value = d.get(k, None)
+
+                        dic[k].append(value)
+
+                return self.from_data(dic)
+
             def set_embedding_function(self, column: str, embedding_function: Transformation):
 
                 self.embedding_functions[column] = embedding_function
@@ -100,6 +120,18 @@ class DaftCollection(
                     embedding_functions=self.embedding_functions,
 
                     daft_df=df,
+
+                )
+
+            def from_data(self, data: Any) -> DaftCollection:
+
+                return DaftCollection(
+
+                    data=data,
+
+                    retriever=self.retriever,
+
+                    embedding_functions=self.embedding_functions,
 
                 )
 
@@ -391,6 +423,18 @@ class DaftCollection(
 
             @lazy(default=True)
 
+            def exclude(
+
+                self,
+
+                *args,
+
+            ) -> DaftCollection:
+
+                return self.from_df(self.df.exclude(*args))
+
+            @lazy(default=True)
+
             def filter(
 
                 self, filter_conditions: Dict[str, Dict[str, str]], *args, **kwargs
@@ -568,6 +612,76 @@ class DaftCollection(
                 daft.context.set_runner_ray(address=addy.address_info["address"])
 
                 return DaftCollection(*args, **kwargs)
+
+            def to_langchain(self, document_column: str, embeddings_column: str):
+
+                from langchain.docstore.document import Document
+
+                from langchain.vectorstores import VectorStore
+
+                class VexpressoVectorStore(VectorStore):
+
+                    def __init__(self, collection: DaftCollection):
+
+                        self.collection = collection
+
+                        self.document_column = document_column
+
+                        self.embeddings_column = embeddings_column
+
+                    def add_texts(
+
+                        self,
+
+                        texts: Iterable[str],
+
+                        metadatas: Optional[List[dict]] = None,
+
+                        **kwargs: Any,
+
+                    ) -> List[str]:
+
+                        if metadatas is None:
+
+                            metadatas = [{} for _ in range(len(texts))]
+
+                        combined = [
+
+                            {self.document_column: t, **m} for t, m in zip(texts, metadatas)
+
+                        ]
+
+                        self.collection = self.collection.add_rows(combined)
+
+                    def similarity_search(
+
+                        self, query: str, k: int = 4, **kwargs: Any
+
+                    ) -> List[Document]:
+
+                        dictionary = self.collection.query(
+
+                            self.embeddings_column, query=query, k=k, lazy=False, **kwargs
+
+                        ).to_dict()
+
+                        documents = dictionary[self.column]
+
+                        metadatas = {k: dictionary[k] for k in dictionary if k != self.column}
+
+                        out = []
+
+                        for i in range(len(documents)):
+
+                            doc = documents[i]
+
+                            d = {k: metadatas[k][i] for k in metadatas}
+
+                            out.append(Document(doc, d))
+
+                        return out
+
+                return VexpressoVectorStore(self)
 
 ------
 
@@ -807,6 +921,31 @@ def add_column(
                 df = self.df.with_column(name, new_df[name])
 
                 return self.from_df(df)
+
+    
+#### add_rows
+
+```python3
+def add_rows(
+    self,
+    data: 'List[Dict[str, Any]]'
+) -> 'DaftCollection'
+```
+
+??? example "View Source"
+            def add_rows(self, data: List[Dict[str, Any]]) -> DaftCollection:
+
+                dic = self.to_dict()
+
+                for k in dic:
+
+                    for d in data:
+
+                        value = d.get(k, None)
+
+                        dic[k].append(value)
+
+                return self.from_data(dic)
 
     
 #### apply
@@ -1128,6 +1267,29 @@ def embed(
                 )
 
     
+#### exclude
+
+```python3
+def exclude(
+    self,
+    *args
+) -> 'DaftCollection'
+```
+
+??? example "View Source"
+            @lazy(default=True)
+
+            def exclude(
+
+                self,
+
+                *args,
+
+            ) -> DaftCollection:
+
+                return self.from_df(self.df.exclude(*args))
+
+    
 #### execute
 
 ```python3
@@ -1179,6 +1341,29 @@ Filter method, filters using conditions based on metadata
                 return self.from_df(
 
                     FilterHelper.filter(self.df, filter_conditions, *args, **kwargs)
+
+                )
+
+    
+#### from_data
+
+```python3
+def from_data(
+    self,
+    data: 'Any'
+) -> 'DaftCollection'
+```
+
+??? example "View Source"
+            def from_data(self, data: Any) -> DaftCollection:
+
+                return DaftCollection(
+
+                    data=data,
+
+                    retriever=self.retriever,
+
+                    embedding_functions=self.embedding_functions,
 
                 )
 
@@ -1504,6 +1689,88 @@ Converts collection to dict
                 collection = self.execute()
 
                 return collection.df.to_pydict()
+
+    
+#### to_langchain
+
+```python3
+def to_langchain(
+    self,
+    document_column: 'str',
+    embeddings_column: 'str'
+)
+```
+
+??? example "View Source"
+            def to_langchain(self, document_column: str, embeddings_column: str):
+
+                from langchain.docstore.document import Document
+
+                from langchain.vectorstores import VectorStore
+
+                class VexpressoVectorStore(VectorStore):
+
+                    def __init__(self, collection: DaftCollection):
+
+                        self.collection = collection
+
+                        self.document_column = document_column
+
+                        self.embeddings_column = embeddings_column
+
+                    def add_texts(
+
+                        self,
+
+                        texts: Iterable[str],
+
+                        metadatas: Optional[List[dict]] = None,
+
+                        **kwargs: Any,
+
+                    ) -> List[str]:
+
+                        if metadatas is None:
+
+                            metadatas = [{} for _ in range(len(texts))]
+
+                        combined = [
+
+                            {self.document_column: t, **m} for t, m in zip(texts, metadatas)
+
+                        ]
+
+                        self.collection = self.collection.add_rows(combined)
+
+                    def similarity_search(
+
+                        self, query: str, k: int = 4, **kwargs: Any
+
+                    ) -> List[Document]:
+
+                        dictionary = self.collection.query(
+
+                            self.embeddings_column, query=query, k=k, lazy=False, **kwargs
+
+                        ).to_dict()
+
+                        documents = dictionary[self.column]
+
+                        metadatas = {k: dictionary[k] for k in dictionary if k != self.column}
+
+                        out = []
+
+                        for i in range(len(documents)):
+
+                            doc = documents[i]
+
+                            d = {k: metadatas[k][i] for k in metadatas}
+
+                            out.append(Document(doc, d))
+
+                        return out
+
+                return VexpressoVectorStore(self)
 
     
 #### to_list
