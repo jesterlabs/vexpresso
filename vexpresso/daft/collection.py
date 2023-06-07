@@ -68,7 +68,10 @@ class DaftCollection(Collection):
                 if data.endswith(".json"):
                     with open(data, "r") as f:
                         data = pd.DataFrame(json.load(f))
-            _metadata_dict = data.to_dict("list")
+            elif isinstance(data, pd.DataFrame):
+                _metadata_dict = data.to_dict("list")
+            else:
+                _metadata_dict = data
 
         if daft_df is None and len(_metadata_dict) > 0:
             self.df = daft.from_pydict({**_metadata_dict})
@@ -85,6 +88,13 @@ class DaftCollection(Collection):
     def __setitem__(self, column: str, value: List[Any]) -> None:
         self.df = self.add_column(column=value, name=column).df
 
+    def add_row(self, data: Dict[str, Any]) -> DaftCollection:
+        dic = self.to_dict()
+        for k in dic:
+            value = data.get(k, None)
+            dic[k].append(value)
+        return self.from_data(dic)
+
     def set_embedding_function(self, column: str, embedding_function: Transformation):
         self.embedding_functions[column] = embedding_function
 
@@ -97,6 +107,13 @@ class DaftCollection(Collection):
             retriever=self.retriever,
             embedding_functions=self.embedding_functions,
             daft_df=df,
+        )
+
+    def from_data(self, data: Any) -> DaftCollection:
+        return DaftCollection(
+            data = data,
+            retriever=self.retriever,
+            embedding_functions=self.embedding_functions
         )
 
     def add_column(self, column: List[Any], name: str = None) -> DaftCollection:
