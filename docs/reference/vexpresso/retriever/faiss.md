@@ -51,6 +51,8 @@
 
             ) -> List[RetrievalOutput]:
 
+                query_embeddings = np.array(query_embeddings)
+
                 self._setup_index(embeddings)
 
                 distances, indices = self.index.search(query_embeddings.astype(np.float32), k=k)
@@ -121,6 +123,8 @@ class FaissRetriever(
                 k: int = 4,
 
             ) -> List[RetrievalOutput]:
+
+                query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
 
@@ -193,6 +197,8 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
                 k: int = 4,
 
             ) -> List[RetrievalOutput]:
+
+                query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
 
