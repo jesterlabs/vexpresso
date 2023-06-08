@@ -10,6 +10,7 @@ from typing import Any, Callable, List, Optional, Tuple
 import daft
 
 ResourceRequest = daft.resource_request.ResourceRequest
+DataType = daft.datatype.DataType
 
 
 # LANGCHAIN

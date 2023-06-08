@@ -10,9 +10,10 @@ authors = [
 ]
 dependencies = [
     'numpy',
+    'getdaft==0.1.5',
     'pandas',
-    'getdaft',
-    'pyarrow'
+    'pyarrow >= 6.0.1',
+    'ray'
 ]
 
 # https://stackoverflow.com/a/73066937

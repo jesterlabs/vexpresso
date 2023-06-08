@@ -103,7 +103,13 @@
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) > value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val > value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -121,7 +127,13 @@
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) >= value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val >= value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -139,7 +151,13 @@
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) < value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val < value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -157,7 +175,13 @@
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) <= value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val <= value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -211,7 +235,13 @@
 
                 def _apply_fn(col_val) -> bool:
 
-                    return value in deep_get(col_val, keys=keys)
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return value in col_val
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -229,7 +259,13 @@
 
                 def _apply_fn(col_val) -> bool:
 
-                    return value not in deep_get(col_val, keys=keys)
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return value not in col_val
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -245,7 +281,7 @@
 
                 field_name, keys = get_field_name_and_key(field)
 
-                def _apply_fn(col_val) -> bool:
+                def _apply_fn(col_val) -> Any:
 
                     return deep_get(col_val, keys=keys)
 
@@ -605,7 +641,13 @@ class FilterMethods(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) > value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val > value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -623,7 +665,13 @@ class FilterMethods(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) >= value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val >= value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -641,7 +689,13 @@ class FilterMethods(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) < value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val < value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -659,7 +713,13 @@ class FilterMethods(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) <= value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val <= value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -713,7 +773,13 @@ class FilterMethods(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return value in deep_get(col_val, keys=keys)
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return value in col_val
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -731,7 +797,13 @@ class FilterMethods(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return value not in deep_get(col_val, keys=keys)
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return value not in col_val
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -747,7 +819,7 @@ class FilterMethods(
 
                 field_name, keys = get_field_name_and_key(field)
 
-                def _apply_fn(col_val) -> bool:
+                def _apply_fn(col_val) -> Any:
 
                     return deep_get(col_val, keys=keys)
 
@@ -802,7 +874,13 @@ def contains(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return value in deep_get(col_val, keys=keys)
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return value in col_val
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -921,7 +999,13 @@ def gt(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) > value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val > value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -952,7 +1036,13 @@ def gte(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) >= value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val >= value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -1014,7 +1104,13 @@ def lt(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) < value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val < value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -1045,7 +1141,13 @@ def lte(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return deep_get(col_val, keys=keys) <= value
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return col_val <= value
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -1107,7 +1209,13 @@ def notcontains(
 
                 def _apply_fn(col_val) -> bool:
 
-                    return value not in deep_get(col_val, keys=keys)
+                    col_val = deep_get(col_val, keys=keys)
+
+                    if col_val is None:
+
+                        return False
+
+                    return value not in col_val
 
                 return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
@@ -1190,7 +1298,7 @@ select field
 
                 field_name, keys = get_field_name_and_key(field)
 
-                def _apply_fn(col_val) -> bool:
+                def _apply_fn(col_val) -> Any:
 
                     return deep_get(col_val, keys=keys)
 

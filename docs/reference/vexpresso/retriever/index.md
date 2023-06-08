@@ -78,6 +78,8 @@ class FaissRetriever(
 
             ) -> List[RetrievalOutput]:
 
+                query_embeddings = np.array(query_embeddings)
+
                 self._setup_index(embeddings)
 
                 distances, indices = self.index.search(query_embeddings.astype(np.float32), k=k)
@@ -149,6 +151,8 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
                 k: int = 4,
 
             ) -> List[RetrievalOutput]:
+
+                query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
 
@@ -241,6 +245,8 @@ class NumpyRetriever(
 
                 embeddings = np.array(embeddings)
 
+                query_embeddings = np.array(query_embeddings)
+
                 top_indices, similarities = self._get_top_k(query_embeddings, embeddings, k)
 
                 # move to list for consistency w/ single and batch calls
@@ -320,6 +326,8 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
             ) -> List[RetrievalOutput]:
 
                 embeddings = np.array(embeddings)
+
+                query_embeddings = np.array(query_embeddings)
 
                 top_indices, similarities = self._get_top_k(query_embeddings, embeddings, k)
 

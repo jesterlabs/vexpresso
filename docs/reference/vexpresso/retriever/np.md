@@ -135,6 +135,8 @@
 
                 embeddings = np.array(embeddings)
 
+                query_embeddings = np.array(query_embeddings)
+
                 top_indices, similarities = self._get_top_k(query_embeddings, embeddings, k)
 
                 # move to list for consistency w/ single and batch calls
@@ -341,6 +343,8 @@ class NumpyRetriever(
 
                 embeddings = np.array(embeddings)
 
+                query_embeddings = np.array(query_embeddings)
+
                 top_indices, similarities = self._get_top_k(query_embeddings, embeddings, k)
 
                 # move to list for consistency w/ single and batch calls
@@ -420,6 +424,8 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
             ) -> List[RetrievalOutput]:
 
                 embeddings = np.array(embeddings)
+
+                query_embeddings = np.array(query_embeddings)
 
                 top_indices, similarities = self._get_top_k(query_embeddings, embeddings, k)
 
