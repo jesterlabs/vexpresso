@@ -14,7 +14,8 @@ import ray
 from daft import col
 
 from vexpresso.collection import Collection
-from vexpresso.filter import FilterHelper
+from vexpresso.daft.filter import FilterHelper
+from vexpresso.embeddings import get_embedding_fn
 from vexpresso.retriever import NumpyRetriever, Retriever
 from vexpresso.utils import (
     DataType,
@@ -273,14 +274,13 @@ class DaftCollection(Collection):
         if k is None:
             k = len(self)
 
-        if embedding_fn is None:
-            embedding_fn = self.embedding_functions[column]
-        else:
+        if embedding_fn is not None:
             if column in self.embedding_functions:
                 if embedding_fn != self.embedding_functions[column]:
-                    print("embedding_fn may not be the same as whats in map!")
-            else:
-                self.embedding_functions[column] = embedding_fn
+                    print(
+                        "embedding_fn may not be the same as whats in map! Updating what's in map..."
+                    )
+            self.embedding_functions[column] = get_embedding_fn(embedding_fn)
 
         if query_embeddings is None:
             query_embeddings = (
@@ -382,12 +382,12 @@ class DaftCollection(Collection):
     def embed(
         self,
         column_name: str,
+        *args,
         content: Optional[List[Any]] = None,
         embedding_fn: Optional[Transformation] = None,
         update_embedding_fn: bool = True,
         to: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
-        *args,
         **kwargs,
     ) -> DaftCollection:
         collection = self
@@ -412,8 +412,7 @@ class DaftCollection(Collection):
             else:
                 self.embedding_functions[to] = embedding_fn
 
-        if getattr(self.embedding_functions[to], "__vexpresso_transform", None) is None:
-            self.embedding_functions[to] = transformation(self.embedding_functions[to])
+        self.embedding_functions[to] = get_embedding_fn(self.embedding_functions[to])
 
         args = [self[column_name], *args]
 

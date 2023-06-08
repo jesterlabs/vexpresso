@@ -1,6 +1,6 @@
 from vexpresso.collection import Collection
+from vexpresso.create_collection import create, create_collection
 from vexpresso.daft import DaftCollection
-from vexpresso.main import create, create_collection
 from vexpresso.utils import DataType, Transformation, transformation
 
 __all__ = [

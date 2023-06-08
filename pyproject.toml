@@ -12,7 +12,7 @@ dependencies = [
     'numpy',
     'getdaft==0.1.5',
     'pandas',
-    'pyarrow >= 6.0.1',
+    'pyarrow',
     'ray'
 ]
 
