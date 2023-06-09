@@ -5,6 +5,20 @@
 
         from typing import Any, List
 
+        from vexpresso.utils import Transformation, transformation
+
+        
+
+        def get_embedding_fn(embedding_fn: Transformation) -> Transformation:
+
+            # langchain check
+
+            if getattr(embedding_fn, "embed_documents", None) is not None:
+
+                return transformation(embedding_fn, function="embed_documents")
+
+            return transformation(embedding_fn)
+
         
 
         class EmbeddingFunction(metaclass=abc.ABCMeta):
@@ -18,6 +32,28 @@
                 This is the main function of `embedding function` to be applied on a column
 
                 """
+
+## Functions
+
+    
+### get_embedding_fn
+
+```python3
+def get_embedding_fn(
+    embedding_fn: Callable[[List[Any], Any], List[Any]]
+) -> Callable[[List[Any], Any], List[Any]]
+```
+
+??? example "View Source"
+        def get_embedding_fn(embedding_fn: Transformation) -> Transformation:
+
+            # langchain check
+
+            if getattr(embedding_fn, "embed_documents", None) is not None:
+
+                return transformation(embedding_fn, function="embed_documents")
+
+            return transformation(embedding_fn)
 
 ## Classes
 
@@ -48,4 +84,5 @@ class EmbeddingFunction(
 
 #### Descendants
 
+* vexpresso.embeddings.clip.ClipEmbeddingsFunction
 * vexpresso.embeddings.sentence_transformers.SentenceTransformerEmbeddingFunction

@@ -1,7 +1,9 @@
 # Module vexpresso.embeddings
 
 ??? example "View Source"
-        from vexpresso.embeddings.base import EmbeddingFunction
+        from vexpresso.embeddings.base import EmbeddingFunction, get_embedding_fn
+
+        from vexpresso.embeddings.clip import ClipEmbeddingsFunction
 
         from vexpresso.embeddings.sentence_transformers import (
 
@@ -9,10 +11,36 @@
 
         )
 
-        from vexpresso.utils import Transformation, transformation
+        __all__ = [
 
-        
+            "EmbeddingFunction",
 
+            "SentenceTransformerEmbeddingFunction",
+
+            "ClipEmbeddingsFunction",
+
+            "get_embedding_fn",
+
+        ]
+
+## Sub-modules
+
+* [vexpresso.embeddings.base](base/)
+* [vexpresso.embeddings.clip](clip/)
+* [vexpresso.embeddings.sentence_transformers](sentence_transformers/)
+
+## Functions
+
+    
+### get_embedding_fn
+
+```python3
+def get_embedding_fn(
+    embedding_fn: Callable[[List[Any], Any], List[Any]]
+) -> Callable[[List[Any], Any], List[Any]]
+```
+
+??? example "View Source"
         def get_embedding_fn(embedding_fn: Transformation) -> Transformation:
 
             # langchain check
@@ -23,24 +51,66 @@
 
             return transformation(embedding_fn)
 
-        
-
-        __all__ = [
-
-            "EmbeddingFunction",
-
-            "SentenceTransformerEmbeddingFunction",
-
-            "get_embeddings_fn",
-
-        ]
-
-## Sub-modules
-
-* [vexpresso.embeddings.base](base/)
-* [vexpresso.embeddings.sentence_transformers](sentence_transformers/)
-
 ## Classes
+
+### ClipEmbeddingsFunction
+
+```python3
+class ClipEmbeddingsFunction(
+    model: str = 'openai/clip-vit-base-patch32'
+)
+```
+
+??? example "View Source"
+        class ClipEmbeddingsFunction(EmbeddingFunction):
+
+            def __init__(self, model: str = DEFAULT_MODEL):
+
+                import torch
+
+                from transformers import CLIPModel, CLIPProcessor, CLIPTokenizerFast
+
+                self.model = CLIPModel.from_pretrained(model)
+
+                self.processor = CLIPProcessor.from_pretrained(model)
+
+                self.tokenizer = CLIPTokenizerFast.from_pretrained(model)
+
+                self.device = torch.device("cpu")
+
+                if torch.cuda.is_available():
+
+                    self.device = torch.device("cuda")
+
+                    self.model = self.model.to(self.device)
+
+            def __call__(self, inp, inp_type: str):
+
+                if inp_type == "image":
+
+                    inputs = self.processor(images=inp, return_tensors="pt", padding=True)[
+
+                        "pixel_values"
+
+                    ].to(self.device)
+
+                    return self.model.get_image_features(inputs).detach().cpu().numpy()
+
+                if inp_type == "text":
+
+                    inputs = self.tokenizer(inp, padding=True, return_tensors="pt")
+
+                    inputs["input_ids"] = inputs["input_ids"].to(self.device)
+
+                    inputs["attention_mask"] = inputs["attention_mask"].to(self.device)
+
+                    return self.model.get_text_features(**inputs).detach().cpu().numpy()
+
+------
+
+#### Ancestors (in MRO)
+
+* vexpresso.embeddings.EmbeddingFunction
 
 ### EmbeddingFunction
 
@@ -69,6 +139,7 @@ class EmbeddingFunction(
 
 #### Descendants
 
+* vexpresso.embeddings.ClipEmbeddingsFunction
 * vexpresso.embeddings.SentenceTransformerEmbeddingFunction
 
 ### SentenceTransformerEmbeddingFunction
