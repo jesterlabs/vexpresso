@@ -8,9 +8,17 @@ from functools import reduce, wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import daft
+import numpy as np
 
 ResourceRequest = daft.resource_request.ResourceRequest
 DataType = daft.datatype.DataType
+
+
+def get_batch_size(embeddings: Iterable[Any]) -> int:
+    if isinstance(embeddings, np.ndarray):
+        if len(embeddings.shape) == 1:
+            return 1
+    return len(embeddings)
 
 
 # LANGCHAIN
@@ -37,7 +45,10 @@ def lazy(default: bool = True):
         def wrapper(*args, lazy=default, **kwargs):
             collection = func(*args, **kwargs)
             if not lazy:
-                collection = collection.execute()
+                if isinstance(collection, list):
+                    collection = [c.execute() for c in collection]
+                else:
+                    collection = collection.execute()
             return collection
 
         return wrapper
@@ -120,10 +131,15 @@ def transformation(
     init_kwargs={},
     function: str = "__call__",
 ):
-    wrapper = transform_wrapper(
-        original_function, datatype=datatype, init_kwargs=init_kwargs, function=function
-    )
-    return wrapper
+    if getattr(original_function, "__vexpresso_transform", None) is None:
+        wrapper = transform_wrapper(
+            original_function,
+            datatype=datatype,
+            init_kwargs=init_kwargs,
+            function=function,
+        )
+        return wrapper
+    return original_function
 
 
 def get_field_name_and_key(field) -> Tuple[str, str]:

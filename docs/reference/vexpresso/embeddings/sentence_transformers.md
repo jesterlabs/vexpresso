@@ -3,7 +3,7 @@
 ??? example "View Source"
         from typing import List
 
-        from vexpresso.embeddings.embedding_fn import EmbeddingFunction
+        from vexpresso.embeddings.base import EmbeddingFunction
 
         DEFAULT_MODEL = "sentence-transformers/all-mpnet-base-v2"
 
@@ -23,9 +23,9 @@
 
                 self.output_type = output_type
 
-            def __call__(self, list_of_texts: List[str], *args, **kwargs):
+            def __call__(self, list_of_texts: List[str]):
 
-                out = self.model.encode(list_of_texts, convert_to_tensor=True, *args, **kwargs)
+                out = self.model.encode(list_of_texts, convert_to_tensor=True)
 
                 if self.output_type == "np":
 
@@ -71,9 +71,9 @@ class SentenceTransformerEmbeddingFunction(
 
                 self.output_type = output_type
 
-            def __call__(self, list_of_texts: List[str], *args, **kwargs):
+            def __call__(self, list_of_texts: List[str]):
 
-                out = self.model.encode(list_of_texts, convert_to_tensor=True, *args, **kwargs)
+                out = self.model.encode(list_of_texts, convert_to_tensor=True)
 
                 if self.output_type == "np":
 
@@ -89,4 +89,4 @@ class SentenceTransformerEmbeddingFunction(
 
 #### Ancestors (in MRO)
 
-* vexpresso.embeddings.embedding_fn.EmbeddingFunction
+* vexpresso.embeddings.base.EmbeddingFunction

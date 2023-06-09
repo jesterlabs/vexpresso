@@ -7,8 +7,6 @@
 
         import os
 
-        from types import MethodType
-
         from typing import Any, Dict, Iterable, List, Optional, Union
 
         import daft
@@ -25,7 +23,11 @@
 
         from vexpresso.collection import Collection
 
-        from vexpresso.filter import FilterHelper
+        from vexpresso.daft.filter import FilterHelper
+
+        from vexpresso.daft.utils import Wrapper, indices, retrieve
+
+        from vexpresso.embeddings import get_embedding_fn
 
         from vexpresso.retriever import NumpyRetriever, Retriever
 
@@ -44,80 +46,6 @@
             transformation,
 
         )
-
-        
-
-        @daft.udf(return_dtype=DataType.int64())
-
-        def indices(columnn):
-
-            return list(range(len(columnn)))
-
-        
-
-        @daft.udf(return_dtype=DataType.python())
-
-        def _retrieve(embedding_col, query_embeddings, retriever, k):
-
-            embeddings = embedding_col.to_pylist()
-
-            retrieval_output = retriever.retrieve(
-
-                query_embeddings=query_embeddings, embeddings=embeddings, k=k
-
-            )[0]
-
-            indices = retrieval_output.indices
-
-            scores = retrieval_output.scores
-
-            results = [
-
-                {"retrieve_index": None, "retrieve_score": scores[i]}
-
-                for i in range(len(embeddings))
-
-            ]
-
-            for idx in indices:
-
-                results[idx]["retrieve_index"] = idx
-
-            return results
-
-        
-
-        class Wrapper:
-
-            def __init__(self, collection):
-
-                self.collection = collection
-
-            def __getattr__(self, name):
-
-                if hasattr(self.collection.daft_df, name):
-
-                    func = getattr(self.collection.daft_df, name)
-
-                    return lambda *args, **kwargs: self._wrap(func, args, kwargs)
-
-                raise AttributeError(name)
-
-            def _wrap(self, func, args, kwargs):
-
-                if type(func) == MethodType:
-
-                    daft_df = func(*args, **kwargs)
-
-                else:
-
-                    daft_df = func(self.collection.daft_df, *args, **kwargs)
-
-                if daft_df is None:
-
-                    return self.collection
-
-                return self.collection.from_daft_df(daft_df)
 
         
 
@@ -289,38 +217,6 @@
 
                 return self.collect()
 
-            @classmethod
-
-            def from_collection(cls, collection: DaftCollection, **kwargs) -> DaftCollection:
-
-                kwargs = {
-
-                    "daft_df": collection.daft_df,
-
-                    "retriever": collection.retriever,
-
-                    **kwargs,
-
-                }
-
-                return DaftCollection(**kwargs)
-
-            def clone(self, **kwargs) -> DaftCollection:
-
-                kwargs = {
-
-                    "df": self.daft_df,
-
-                    "embeddings_fn": self.embeddings_fn,
-
-                    "retriever": self.retriever,
-
-                    **kwargs,
-
-                }
-
-                return DaftCollection(**kwargs)
-
             def to_pandas(self) -> pd.DataFrame:
 
                 collection = self.execute()
@@ -343,95 +239,51 @@
 
                 return self.daft_df.show(num_rows)
 
-            def _retrieve(
-
-                self,
-
-                df,
-
-                embedding_column_name: str,
-
-                query_embeddings,
-
-                k: int = None,
-
-                sort=True,
-
-                score_column_name: Optional[str] = None,
-
-                resource_request=ResourceRequest(),
-
-            ) -> daft.DataFrame:
-
-                if score_column_name is None:
-
-                    score_column_name = f"{embedding_column_name}_score"
-
-                df = df.with_column(
-
-                    "retrieve_output",
-
-                    _retrieve(
-
-                        col(embedding_column_name),
-
-                        query_embeddings=query_embeddings,
-
-                        k=k,
-
-                        retriever=self.retriever,
-
-                    ),
-
-                    resource_request=resource_request,
-
-                )
-
-                df = (
-
-                    df.with_column(
-
-                        "retrieve_index",
-
-                        col("retrieve_output").apply(
-
-                            lambda x: x["retrieve_index"], return_dtype=DataType.int64()
-
-                        ),
-
-                    )
-
-                    .with_column(
-
-                        score_column_name,
-
-                        col("retrieve_output").apply(
-
-                            lambda x: x["retrieve_score"], return_dtype=DataType.float64()
-
-                        ),
-
-                    )
-
-                    .exclude("retrieve_output")
-
-                    .where(col("retrieve_index") != -1)
-
-                    .exclude("retrieve_index")
-
-                )
-
-                if sort:
-
-                    df = df.sort(col(score_column_name), desc=True)
-
-                return df
-
             @lazy(default=True)
 
             def sort(self, column, desc=True) -> DaftCollection:
 
                 return self.from_daft_df(self.daft_df.sort(col(column), desc=desc))
+
+            def _embed_queries(
+
+                self,
+
+                queries,
+
+                embedding_function,
+
+                resource_request=ResourceRequest(),
+
+                *args,
+
+                **kwargs,
+
+            ):
+
+                query_embeddings = (
+
+                    daft.from_pydict({"queries": queries})
+
+                    .with_column(
+
+                        "query_embeddings",
+
+                        embedding_function(col("queries"), *args, **kwargs),
+
+                        resource_request=resource_request,
+
+                    )
+
+                    .select("query_embeddings")
+
+                    .collect()
+
+                    .to_pydict()["query_embeddings"]
+
+                )
+
+                return query_embeddings
 
             @lazy(default=True)
 
@@ -443,103 +295,147 @@
 
                 query: List[Any] = None,
 
-                query_embeddings: Any = None,
+                query_embedding: List[Any] = None,
 
                 filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
 
-                k=None,
+                k: int = None,
 
-                sort=True,
+                sort: bool = True,
 
                 embedding_fn: Optional[Transformation] = None,
 
                 score_column_name: Optional[str] = None,
 
-                resource_request=ResourceRequest(),
+                resource_request: ResourceRequest = ResourceRequest(),
 
                 *args,
 
                 **kwargs,
 
-            ) -> DaftCollection:
+            ) -> Collection:
 
-                df = self.daft_df
+                if query is not None:
 
-                if k is None:
+                    query = [query]
 
-                    k = len(self)
+                return self.batch_query(
 
-                if embedding_fn is None:
+                    column=column,
 
-                    embedding_fn = self.embedding_functions[column]
+                    queries=query,
 
-                else:
+                    query_embeddings=query_embedding,
 
-                    if column in self.embedding_functions:
-
-                        if embedding_fn != self.embedding_functions[column]:
-
-                            print("embedding_fn may not be the same as whats in map!")
-
-                    else:
-
-                        self.embedding_functions[column] = embedding_fn
-
-                if query_embeddings is None:
-
-                    query_embeddings = (
-
-                        daft.from_pydict({"queries": [query]})
-
-                        .with_column(
-
-                            "query_embeddings",
-
-                            self.embedding_functions[column](col("queries"), *args, **kwargs),
-
-                            resource_request=resource_request,
-
-                        )
-
-                        .select("query_embeddings")
-
-                        .collect()
-
-                        .to_pydict()["query_embeddings"]
-
-                    )
-
-                embedding_column_name = column
-
-                if embedding_column_name not in df.column_names:
-
-                    raise ValueError(
-
-                        f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {column}..."
-
-                    )
-
-                df = self._retrieve(
-
-                    df=df,
-
-                    embedding_column_name=column,
-
-                    query_embeddings=query_embeddings,
+                    filter_conditions=filter_conditions,
 
                     k=k,
 
                     sort=sort,
 
+                    embedding_fn=embedding_fn,
+
                     score_column_name=score_column_name,
+
+                    resource_request=resource_request,
+
+                    *args,
+
+                    **kwargs,
+
+                )[0]
+
+            @lazy(default=True)
+
+            def batch_query(
+
+                self,
+
+                column: str,
+
+                queries: List[Any] = None,
+
+                query_embeddings: List[Any] = None,
+
+                filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
+
+                k: int = None,
+
+                sort: bool = True,
+
+                embedding_fn: Optional[Transformation] = None,
+
+                score_column_name: Optional[str] = None,
+
+                resource_request: ResourceRequest = ResourceRequest(),
+
+                *args,
+
+                **kwargs,
+
+            ) -> List[Collection]:
+
+                batch_size = len(queries) if query_embeddings is None else len(query_embeddings)
+
+                if embedding_fn is not None:
+
+                    if column in self.embedding_functions:
+
+                        if embedding_fn != self.embedding_functions[column]:
+
+                            print(
+
+                                "embedding_fn may not be the same as whats in map! Updating what's in map..."
+
+                            )
+
+                    self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+
+                if query_embeddings is None:
+
+                    query_embeddings = self._embed_queries(
+
+                        queries,
+
+                        self.embedding_functions[column],
+
+                        resource_request,
+
+                        *args,
+
+                        **kwargs,
+
+                    )
+
+                dfs = retrieve(
+
+                    batch_size,
+
+                    self.daft_df,
+
+                    column,
+
+                    query_embeddings,
+
+                    self.retriever,
+
+                    k,
+
+                    sort,
+
+                    score_column_name,
+
+                    resource_request,
 
                 )
 
-                if filter_conditions is not None:
+                for i in range(len(dfs)):
 
-                    df = FilterHelper.filter(df, filter_conditions)
+                    if filter_conditions is not None:
 
-                return self.from_daft_df(df)
+                        dfs[i] = FilterHelper.filter(dfs[i], filter_conditions)
+
+                return [self.from_daft_df(df) for df in dfs]
 
             @lazy(default=True)
 
@@ -597,9 +493,7 @@
 
             ) -> DaftCollection:
 
-                if getattr(transform_fn, "__vexpresso_transform", None) is None:
-
-                    transform_fn = transformation(transform_fn)
+                transform_fn = transformation(transform_fn)
 
                 if not isinstance(args[0], DaftCollection):
 
@@ -657,6 +551,8 @@
 
                 column_name: str,
 
+                *args,
+
                 content: Optional[List[Any]] = None,
 
                 embedding_fn: Optional[Transformation] = None,
@@ -666,8 +562,6 @@
                 to: Optional[str] = None,
 
                 resource_request: ResourceRequest = ResourceRequest(),
-
-                *args,
 
                 **kwargs,
 
@@ -707,9 +601,7 @@
 
                         self.embedding_functions[to] = embedding_fn
 
-                if getattr(self.embedding_functions[to], "__vexpresso_transform", None) is None:
-
-                    self.embedding_functions[to] = transformation(self.embedding_functions[to])
+                self.embedding_functions[to] = get_embedding_fn(self.embedding_functions[to])
 
                 args = [self[column_name], *args]
 
@@ -867,12 +759,6 @@
 
                 return DaftCollection(data=raw, *args, **kwargs)
 
-## Variables
-
-```python3
-indices
-```
-
 ## Classes
 
 ### DaftCollection
@@ -880,7 +766,7 @@ indices
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7fdd833cac40>,
+    retriever: 'Retriever' = <vexpresso.retriever.np.NumpyRetriever object at 0x7f2f857d3190>,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None
 )
@@ -1055,38 +941,6 @@ class DaftCollection(
 
                 return self.collect()
 
-            @classmethod
-
-            def from_collection(cls, collection: DaftCollection, **kwargs) -> DaftCollection:
-
-                kwargs = {
-
-                    "daft_df": collection.daft_df,
-
-                    "retriever": collection.retriever,
-
-                    **kwargs,
-
-                }
-
-                return DaftCollection(**kwargs)
-
-            def clone(self, **kwargs) -> DaftCollection:
-
-                kwargs = {
-
-                    "df": self.daft_df,
-
-                    "embeddings_fn": self.embeddings_fn,
-
-                    "retriever": self.retriever,
-
-                    **kwargs,
-
-                }
-
-                return DaftCollection(**kwargs)
-
             def to_pandas(self) -> pd.DataFrame:
 
                 collection = self.execute()
@@ -1109,95 +963,51 @@ class DaftCollection(
 
                 return self.daft_df.show(num_rows)
 
-            def _retrieve(
-
-                self,
-
-                df,
-
-                embedding_column_name: str,
-
-                query_embeddings,
-
-                k: int = None,
-
-                sort=True,
-
-                score_column_name: Optional[str] = None,
-
-                resource_request=ResourceRequest(),
-
-            ) -> daft.DataFrame:
-
-                if score_column_name is None:
-
-                    score_column_name = f"{embedding_column_name}_score"
-
-                df = df.with_column(
-
-                    "retrieve_output",
-
-                    _retrieve(
-
-                        col(embedding_column_name),
-
-                        query_embeddings=query_embeddings,
-
-                        k=k,
-
-                        retriever=self.retriever,
-
-                    ),
-
-                    resource_request=resource_request,
-
-                )
-
-                df = (
-
-                    df.with_column(
-
-                        "retrieve_index",
-
-                        col("retrieve_output").apply(
-
-                            lambda x: x["retrieve_index"], return_dtype=DataType.int64()
-
-                        ),
-
-                    )
-
-                    .with_column(
-
-                        score_column_name,
-
-                        col("retrieve_output").apply(
-
-                            lambda x: x["retrieve_score"], return_dtype=DataType.float64()
-
-                        ),
-
-                    )
-
-                    .exclude("retrieve_output")
-
-                    .where(col("retrieve_index") != -1)
-
-                    .exclude("retrieve_index")
-
-                )
-
-                if sort:
-
-                    df = df.sort(col(score_column_name), desc=True)
-
-                return df
-
             @lazy(default=True)
 
             def sort(self, column, desc=True) -> DaftCollection:
 
                 return self.from_daft_df(self.daft_df.sort(col(column), desc=desc))
+
+            def _embed_queries(
+
+                self,
+
+                queries,
+
+                embedding_function,
+
+                resource_request=ResourceRequest(),
+
+                *args,
+
+                **kwargs,
+
+            ):
+
+                query_embeddings = (
+
+                    daft.from_pydict({"queries": queries})
+
+                    .with_column(
+
+                        "query_embeddings",
+
+                        embedding_function(col("queries"), *args, **kwargs),
+
+                        resource_request=resource_request,
+
+                    )
+
+                    .select("query_embeddings")
+
+                    .collect()
+
+                    .to_pydict()["query_embeddings"]
+
+                )
+
+                return query_embeddings
 
             @lazy(default=True)
 
@@ -1209,103 +1019,147 @@ class DaftCollection(
 
                 query: List[Any] = None,
 
-                query_embeddings: Any = None,
+                query_embedding: List[Any] = None,
 
                 filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
 
-                k=None,
+                k: int = None,
 
-                sort=True,
+                sort: bool = True,
 
                 embedding_fn: Optional[Transformation] = None,
 
                 score_column_name: Optional[str] = None,
 
-                resource_request=ResourceRequest(),
+                resource_request: ResourceRequest = ResourceRequest(),
 
                 *args,
 
                 **kwargs,
 
-            ) -> DaftCollection:
+            ) -> Collection:
 
-                df = self.daft_df
+                if query is not None:
 
-                if k is None:
+                    query = [query]
 
-                    k = len(self)
+                return self.batch_query(
 
-                if embedding_fn is None:
+                    column=column,
 
-                    embedding_fn = self.embedding_functions[column]
+                    queries=query,
 
-                else:
+                    query_embeddings=query_embedding,
 
-                    if column in self.embedding_functions:
-
-                        if embedding_fn != self.embedding_functions[column]:
-
-                            print("embedding_fn may not be the same as whats in map!")
-
-                    else:
-
-                        self.embedding_functions[column] = embedding_fn
-
-                if query_embeddings is None:
-
-                    query_embeddings = (
-
-                        daft.from_pydict({"queries": [query]})
-
-                        .with_column(
-
-                            "query_embeddings",
-
-                            self.embedding_functions[column](col("queries"), *args, **kwargs),
-
-                            resource_request=resource_request,
-
-                        )
-
-                        .select("query_embeddings")
-
-                        .collect()
-
-                        .to_pydict()["query_embeddings"]
-
-                    )
-
-                embedding_column_name = column
-
-                if embedding_column_name not in df.column_names:
-
-                    raise ValueError(
-
-                        f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {column}..."
-
-                    )
-
-                df = self._retrieve(
-
-                    df=df,
-
-                    embedding_column_name=column,
-
-                    query_embeddings=query_embeddings,
+                    filter_conditions=filter_conditions,
 
                     k=k,
 
                     sort=sort,
 
+                    embedding_fn=embedding_fn,
+
                     score_column_name=score_column_name,
+
+                    resource_request=resource_request,
+
+                    *args,
+
+                    **kwargs,
+
+                )[0]
+
+            @lazy(default=True)
+
+            def batch_query(
+
+                self,
+
+                column: str,
+
+                queries: List[Any] = None,
+
+                query_embeddings: List[Any] = None,
+
+                filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
+
+                k: int = None,
+
+                sort: bool = True,
+
+                embedding_fn: Optional[Transformation] = None,
+
+                score_column_name: Optional[str] = None,
+
+                resource_request: ResourceRequest = ResourceRequest(),
+
+                *args,
+
+                **kwargs,
+
+            ) -> List[Collection]:
+
+                batch_size = len(queries) if query_embeddings is None else len(query_embeddings)
+
+                if embedding_fn is not None:
+
+                    if column in self.embedding_functions:
+
+                        if embedding_fn != self.embedding_functions[column]:
+
+                            print(
+
+                                "embedding_fn may not be the same as whats in map! Updating what's in map..."
+
+                            )
+
+                    self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+
+                if query_embeddings is None:
+
+                    query_embeddings = self._embed_queries(
+
+                        queries,
+
+                        self.embedding_functions[column],
+
+                        resource_request,
+
+                        *args,
+
+                        **kwargs,
+
+                    )
+
+                dfs = retrieve(
+
+                    batch_size,
+
+                    self.daft_df,
+
+                    column,
+
+                    query_embeddings,
+
+                    self.retriever,
+
+                    k,
+
+                    sort,
+
+                    score_column_name,
+
+                    resource_request,
 
                 )
 
-                if filter_conditions is not None:
+                for i in range(len(dfs)):
 
-                    df = FilterHelper.filter(df, filter_conditions)
+                    if filter_conditions is not None:
 
-                return self.from_daft_df(df)
+                        dfs[i] = FilterHelper.filter(dfs[i], filter_conditions)
+
+                return [self.from_daft_df(df) for df in dfs]
 
             @lazy(default=True)
 
@@ -1363,9 +1217,7 @@ class DaftCollection(
 
             ) -> DaftCollection:
 
-                if getattr(transform_fn, "__vexpresso_transform", None) is None:
-
-                    transform_fn = transformation(transform_fn)
+                transform_fn = transformation(transform_fn)
 
                 if not isinstance(args[0], DaftCollection):
 
@@ -1423,6 +1275,8 @@ class DaftCollection(
 
                 column_name: str,
 
+                *args,
+
                 content: Optional[List[Any]] = None,
 
                 embedding_fn: Optional[Transformation] = None,
@@ -1432,8 +1286,6 @@ class DaftCollection(
                 to: Optional[str] = None,
 
                 resource_request: ResourceRequest = ResourceRequest(),
-
-                *args,
 
                 **kwargs,
 
@@ -1473,9 +1325,7 @@ class DaftCollection(
 
                         self.embedding_functions[to] = embedding_fn
 
-                if getattr(self.embedding_functions[to], "__vexpresso_transform", None) is None:
-
-                    self.embedding_functions[to] = transformation(self.embedding_functions[to])
+                self.embedding_functions[to] = get_embedding_fn(self.embedding_functions[to])
 
                 args = [self[column_name], *args]
 
@@ -1673,33 +1523,6 @@ def connect(
                 daft.context.set_runner_ray(address=addy.address_info["address"])
 
                 return DaftCollection(*args, **kwargs)
-
-    
-#### from_collection
-
-```python3
-def from_collection(
-    collection: 'DaftCollection',
-    **kwargs
-) -> 'DaftCollection'
-```
-
-??? example "View Source"
-            @classmethod
-
-            def from_collection(cls, collection: DaftCollection, **kwargs) -> DaftCollection:
-
-                kwargs = {
-
-                    "daft_df": collection.daft_df,
-
-                    "retriever": collection.retriever,
-
-                    **kwargs,
-
-                }
-
-                return DaftCollection(**kwargs)
 
     
 #### from_documents
@@ -1964,9 +1787,7 @@ transformed_{column_name}
 
             ) -> DaftCollection:
 
-                if getattr(transform_fn, "__vexpresso_transform", None) is None:
-
-                    transform_fn = transformation(transform_fn)
+                transform_fn = transformation(transform_fn)
 
                 if not isinstance(args[0], DaftCollection):
 
@@ -2022,39 +1843,44 @@ transformed_{column_name}
 ```python3
 def batch_query(
     self,
-    columns: 'List[str]',
+    column: 'str',
     queries: 'List[Any]' = None,
     query_embeddings: 'List[Any]' = None,
-    filter_conditions: 'List[Optional[Dict[str, Dict[str, str]]]]' = None,
-    k=None,
-    sort=True,
-    embedding_fn: 'List[Optional[Transformation]]' = None,
-    score_column_name: 'List[Optional[str]]' = None,
+    filter_conditions: 'Optional[Dict[str, Dict[str, str]]]' = None,
+    k: 'int' = None,
+    sort: 'bool' = True,
+    embedding_fn: 'Optional[Transformation]' = None,
+    score_column_name: 'Optional[str]' = None,
+    resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
     *args,
     **kwargs
 ) -> 'List[Collection]'
 ```
 
 ??? example "View Source"
+            @lazy(default=True)
+
             def batch_query(
 
                 self,
 
-                columns: List[str],
+                column: str,
 
                 queries: List[Any] = None,
 
                 query_embeddings: List[Any] = None,
 
-                filter_conditions: List[Optional[Dict[str, Dict[str, str]]]] = None,
+                filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
 
-                k=None,
+                k: int = None,
 
-                sort=True,
+                sort: bool = True,
 
-                embedding_fn: List[Optional[Transformation]] = None,
+                embedding_fn: Optional[Transformation] = None,
 
-                score_column_name: List[Optional[str]] = None,
+                score_column_name: Optional[str] = None,
+
+                resource_request: ResourceRequest = ResourceRequest(),
 
                 *args,
 
@@ -2062,57 +1888,67 @@ def batch_query(
 
             ) -> List[Collection]:
 
-                batch_size = len(columns)
+                batch_size = len(queries) if query_embeddings is None else len(query_embeddings)
 
-                queries = batchify_args(queries, batch_size)
+                if embedding_fn is not None:
 
-                query_embeddings = batchify_args(query_embeddings, batch_size)
+                    if column in self.embedding_functions:
 
-                filter_conditions = batchify_args(filter_conditions, batch_size)
+                        if embedding_fn != self.embedding_functions[column]:
 
-                k = batchify_args(k, batch_size)
+                            print(
 
-                sort = batchify_args(sort, batch_size)
+                                "embedding_fn may not be the same as whats in map! Updating what's in map..."
 
-                embedding_fn = batchify_args(embedding_fn, batch_size)
+                            )
 
-                score_column_name = batchify_args(score_column_name, batch_size)
+                    self.embedding_functions[column] = get_embedding_fn(embedding_fn)
 
-                collection = self
+                if query_embeddings is None:
 
-                collections = []
+                    query_embeddings = self._embed_queries(
 
-                for i in range(batch_size):
+                        queries,
 
-                    collections.append(
+                        self.embedding_functions[column],
 
-                        collection.query(
+                        resource_request,
 
-                            columns[i],
+                        *args,
 
-                            queries[i],
-
-                            query_embeddings[i],
-
-                            filter_conditions[i],
-
-                            k[i],
-
-                            sort[i],
-
-                            embedding_fn[i],
-
-                            score_column_name[i],
-
-                            *args,
-
-                            **kwargs,
-
-                        )
+                        **kwargs,
 
                     )
 
-                return collections
+                dfs = retrieve(
+
+                    batch_size,
+
+                    self.daft_df,
+
+                    column,
+
+                    query_embeddings,
+
+                    self.retriever,
+
+                    k,
+
+                    sort,
+
+                    score_column_name,
+
+                    resource_request,
+
+                )
+
+                for i in range(len(dfs)):
+
+                    if filter_conditions is not None:
+
+                        dfs[i] = FilterHelper.filter(dfs[i], filter_conditions)
+
+                return [self.from_daft_df(df) for df in dfs]
 
     
 #### cast
@@ -2141,33 +1977,6 @@ def cast(
                     columns = [col(column).cast(datatype)]
 
                 return self.from_daft_df(self.daft_df.select(*columns))
-
-    
-#### clone
-
-```python3
-def clone(
-    self,
-    **kwargs
-) -> 'DaftCollection'
-```
-
-??? example "View Source"
-            def clone(self, **kwargs) -> DaftCollection:
-
-                kwargs = {
-
-                    "df": self.daft_df,
-
-                    "embeddings_fn": self.embeddings_fn,
-
-                    "retriever": self.retriever,
-
-                    **kwargs,
-
-                }
-
-                return DaftCollection(**kwargs)
 
     
 #### collect
@@ -2205,12 +2014,12 @@ Materializes the collection
 def embed(
     self,
     column_name: 'str',
+    *args,
     content: 'Optional[List[Any]]' = None,
     embedding_fn: 'Optional[Transformation]' = None,
     update_embedding_fn: 'bool' = True,
     to: 'Optional[str]' = None,
     resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
-    *args,
     **kwargs
 ) -> 'DaftCollection'
 ```
@@ -2224,6 +2033,8 @@ def embed(
 
                 column_name: str,
 
+                *args,
+
                 content: Optional[List[Any]] = None,
 
                 embedding_fn: Optional[Transformation] = None,
@@ -2233,8 +2044,6 @@ def embed(
                 to: Optional[str] = None,
 
                 resource_request: ResourceRequest = ResourceRequest(),
-
-                *args,
 
                 **kwargs,
 
@@ -2274,9 +2083,7 @@ def embed(
 
                         self.embedding_functions[to] = embedding_fn
 
-                if getattr(self.embedding_functions[to], "__vexpresso_transform", None) is None:
-
-                    self.embedding_functions[to] = transformation(self.embedding_functions[to])
+                self.embedding_functions[to] = get_embedding_fn(self.embedding_functions[to])
 
                 args = [self[column_name], *args]
 
@@ -2426,16 +2233,16 @@ def query(
     self,
     column: 'str',
     query: 'List[Any]' = None,
-    query_embeddings: 'Any' = None,
+    query_embedding: 'List[Any]' = None,
     filter_conditions: 'Optional[Dict[str, Dict[str, str]]]' = None,
-    k=None,
-    sort=True,
+    k: 'int' = None,
+    sort: 'bool' = True,
     embedding_fn: 'Optional[Transformation]' = None,
     score_column_name: 'Optional[str]' = None,
-    resource_request=ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
+    resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
     *args,
     **kwargs
-) -> 'DaftCollection'
+) -> 'Collection'
 ```
 
 Query method, takes in queries or query embeddings and retrieves nearest content
@@ -2459,103 +2266,55 @@ Query method, takes in queries or query embeddings and retrieves nearest content
 
                 query: List[Any] = None,
 
-                query_embeddings: Any = None,
+                query_embedding: List[Any] = None,
 
                 filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
 
-                k=None,
+                k: int = None,
 
-                sort=True,
+                sort: bool = True,
 
                 embedding_fn: Optional[Transformation] = None,
 
                 score_column_name: Optional[str] = None,
 
-                resource_request=ResourceRequest(),
+                resource_request: ResourceRequest = ResourceRequest(),
 
                 *args,
 
                 **kwargs,
 
-            ) -> DaftCollection:
+            ) -> Collection:
 
-                df = self.daft_df
+                if query is not None:
 
-                if k is None:
+                    query = [query]
 
-                    k = len(self)
+                return self.batch_query(
 
-                if embedding_fn is None:
+                    column=column,
 
-                    embedding_fn = self.embedding_functions[column]
+                    queries=query,
 
-                else:
+                    query_embeddings=query_embedding,
 
-                    if column in self.embedding_functions:
-
-                        if embedding_fn != self.embedding_functions[column]:
-
-                            print("embedding_fn may not be the same as whats in map!")
-
-                    else:
-
-                        self.embedding_functions[column] = embedding_fn
-
-                if query_embeddings is None:
-
-                    query_embeddings = (
-
-                        daft.from_pydict({"queries": [query]})
-
-                        .with_column(
-
-                            "query_embeddings",
-
-                            self.embedding_functions[column](col("queries"), *args, **kwargs),
-
-                            resource_request=resource_request,
-
-                        )
-
-                        .select("query_embeddings")
-
-                        .collect()
-
-                        .to_pydict()["query_embeddings"]
-
-                    )
-
-                embedding_column_name = column
-
-                if embedding_column_name not in df.column_names:
-
-                    raise ValueError(
-
-                        f"{embedding_column_name} not found in daft df. Make sure to call `embed` on column {column}..."
-
-                    )
-
-                df = self._retrieve(
-
-                    df=df,
-
-                    embedding_column_name=column,
-
-                    query_embeddings=query_embeddings,
+                    filter_conditions=filter_conditions,
 
                     k=k,
 
                     sort=sort,
 
+                    embedding_fn=embedding_fn,
+
                     score_column_name=score_column_name,
 
-                )
+                    resource_request=resource_request,
 
-                if filter_conditions is not None:
+                    *args,
 
-                    df = FilterHelper.filter(df, filter_conditions)
+                    **kwargs,
 
-                return self.from_daft_df(df)
+                )[0]
 
     
 #### save
@@ -2912,46 +2671,3 @@ Converts collection to pandas dataframe
                 collection = self.execute()
 
                 return collection.daft_df.to_pandas()
-
-### Wrapper
-
-```python3
-class Wrapper(
-    collection
-)
-```
-
-??? example "View Source"
-        class Wrapper:
-
-            def __init__(self, collection):
-
-                self.collection = collection
-
-            def __getattr__(self, name):
-
-                if hasattr(self.collection.daft_df, name):
-
-                    func = getattr(self.collection.daft_df, name)
-
-                    return lambda *args, **kwargs: self._wrap(func, args, kwargs)
-
-                raise AttributeError(name)
-
-            def _wrap(self, func, args, kwargs):
-
-                if type(func) == MethodType:
-
-                    daft_df = func(*args, **kwargs)
-
-                else:
-
-                    daft_df = func(self.collection.daft_df, *args, **kwargs)
-
-                if daft_df is None:
-
-                    return self.collection
-
-                return self.collection.from_daft_df(daft_df)
-
-------

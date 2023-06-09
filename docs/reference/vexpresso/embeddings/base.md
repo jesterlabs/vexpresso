@@ -1,4 +1,4 @@
-# Module vexpresso.embeddings.embedding_fn
+# Module vexpresso.embeddings.base
 
 ??? example "View Source"
         import abc

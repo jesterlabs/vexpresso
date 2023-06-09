@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from vexpresso.utils import HFHubHelper, Transformation, batchify_args
+from vexpresso.utils import HFHubHelper, Transformation
 
 
 class Collection(metaclass=abc.ABCMeta):
@@ -69,47 +69,6 @@ class Collection(metaclass=abc.ABCMeta):
             query_embeddings (Dict[str, Any], optional): _description_. Defaults to {}.
             filter_conditions (Dict[str, Dict[str, str]]): _description_
         """
-
-    def batch_query(
-        self,
-        columns: List[str],
-        queries: List[Any] = None,
-        query_embeddings: List[Any] = None,
-        filter_conditions: List[Optional[Dict[str, Dict[str, str]]]] = None,
-        k=None,
-        sort=True,
-        embedding_fn: List[Optional[Transformation]] = None,
-        score_column_name: List[Optional[str]] = None,
-        *args,
-        **kwargs,
-    ) -> List[Collection]:
-        batch_size = len(columns)
-        queries = batchify_args(queries, batch_size)
-        query_embeddings = batchify_args(query_embeddings, batch_size)
-        filter_conditions = batchify_args(filter_conditions, batch_size)
-        k = batchify_args(k, batch_size)
-        sort = batchify_args(sort, batch_size)
-        embedding_fn = batchify_args(embedding_fn, batch_size)
-        score_column_name = batchify_args(score_column_name, batch_size)
-
-        collection = self
-        collections = []
-        for i in range(batch_size):
-            collections.append(
-                collection.query(
-                    columns[i],
-                    queries[i],
-                    query_embeddings[i],
-                    filter_conditions[i],
-                    k[i],
-                    sort[i],
-                    embedding_fn[i],
-                    score_column_name[i],
-                    *args,
-                    **kwargs,
-                )
-            )
-        return collections
 
     @abc.abstractmethod
     def select(self, columns: List[str]) -> Collection:
@@ -222,9 +181,3 @@ class Collection(metaclass=abc.ABCMeta):
             *args,
             **kwargs,
         )
-
-    @classmethod
-    def connect(
-        cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
-    ) -> Collection:
-        return None

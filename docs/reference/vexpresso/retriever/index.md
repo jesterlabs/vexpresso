@@ -379,6 +379,10 @@ RetrievalOutput(embeddings: Any, indices: Union[numpy.ndarray, Iterable[int]], s
 
             query_embeddings: Optional[Any] = None
 
+            def dict(self) -> Dict[str, Any]:
+
+                return {k: str(v) for k, v in asdict(self).items()}
+
 ------
 
 #### Class variables
@@ -386,6 +390,22 @@ RetrievalOutput(embeddings: Any, indices: Union[numpy.ndarray, Iterable[int]], s
 ```python3
 query_embeddings
 ```
+
+#### Methods
+
+    
+#### dict
+
+```python3
+def dict(
+    self
+) -> Dict[str, Any]
+```
+
+??? example "View Source"
+            def dict(self) -> Dict[str, Any]:
+
+                return {k: str(v) for k, v in asdict(self).items()}
 
 ### Retriever
 

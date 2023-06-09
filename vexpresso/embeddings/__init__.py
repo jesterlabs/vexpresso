@@ -6,8 +6,6 @@ from vexpresso.utils import Transformation, transformation
 
 
 def get_embedding_fn(embedding_fn: Transformation) -> Transformation:
-    if getattr(embedding_fn, "__vexpresso_transform", None) is not None:
-        return embedding_fn
     # langchain check
     if getattr(embedding_fn, "embed_documents", None) is not None:
         return transformation(embedding_fn, function="embed_documents")

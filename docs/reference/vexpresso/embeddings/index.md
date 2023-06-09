@@ -1,7 +1,7 @@
 # Module vexpresso.embeddings
 
 ??? example "View Source"
-        from vexpresso.embeddings.embedding_fn import EmbeddingFunction
+        from vexpresso.embeddings.base import EmbeddingFunction
 
         from vexpresso.embeddings.sentence_transformers import (
 
@@ -9,11 +9,35 @@
 
         )
 
-        __all__ = ["EmbeddingFunction", "SentenceTransformerEmbeddingFunction"]
+        from vexpresso.utils import Transformation, transformation
+
+        
+
+        def get_embedding_fn(embedding_fn: Transformation) -> Transformation:
+
+            # langchain check
+
+            if getattr(embedding_fn, "embed_documents", None) is not None:
+
+                return transformation(embedding_fn, function="embed_documents")
+
+            return transformation(embedding_fn)
+
+        
+
+        __all__ = [
+
+            "EmbeddingFunction",
+
+            "SentenceTransformerEmbeddingFunction",
+
+            "get_embeddings_fn",
+
+        ]
 
 ## Sub-modules
 
-* [vexpresso.embeddings.embedding_fn](embedding_fn/)
+* [vexpresso.embeddings.base](base/)
 * [vexpresso.embeddings.sentence_transformers](sentence_transformers/)
 
 ## Classes
@@ -73,9 +97,9 @@ class SentenceTransformerEmbeddingFunction(
 
                 self.output_type = output_type
 
-            def __call__(self, list_of_texts: List[str], *args, **kwargs):
+            def __call__(self, list_of_texts: List[str]):
 
-                out = self.model.encode(list_of_texts, convert_to_tensor=True, *args, **kwargs)
+                out = self.model.encode(list_of_texts, convert_to_tensor=True)
 
                 if self.output_type == "np":
 

@@ -1,4 +1,4 @@
-# Module vexpresso.main
+# Module vexpresso.create_collection
 
 ??? example "View Source"
         from typing import Any, Dict, Optional

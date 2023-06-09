@@ -1,4 +1,4 @@
-# Module vexpresso.filter
+# Module vexpresso.daft.filter
 
 ??? example "View Source"
         import inspect

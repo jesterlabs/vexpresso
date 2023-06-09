@@ -13,13 +13,27 @@
 
         from functools import reduce, wraps
 
-        from typing import Any, Callable, List, Optional, Tuple
+        from typing import Any, Callable, Dict, List, Optional, Tuple
 
         import daft
+
+        import numpy as np
 
         ResourceRequest = daft.resource_request.ResourceRequest
 
         DataType = daft.datatype.DataType
+
+        
+
+        def get_batch_size(embeddings: Iterable[Any]) -> int:
+
+            if isinstance(embeddings, np.ndarray):
+
+                if len(embeddings.shape) == 1:
+
+                    return 1
+
+            return len(embeddings)
 
         
 
@@ -65,7 +79,13 @@
 
                     if not lazy:
 
-                        collection = collection.execute()
+                        if isinstance(collection, list):
+
+                            collection = [c.execute() for c in collection]
+
+                        else:
+
+                            collection = collection.execute()
 
                     return collection
 
@@ -107,79 +127,85 @@
 
         
 
-        class TransformationWrapper:
+        def transform_wrapper(
 
-            def __init__(
+            original_transform: Transformation = None,
 
-                self,
+            datatype: str = "python",
 
-                original_transform: Transformation = None,
+            init_kwargs: Dict[str, Any] = {},
 
-                datatype: str = "python",
+            function: str = "__call__",
 
-                init_kwargs={},
+        ):
 
-            ):
+            if inspect.isfunction(original_transform):
 
-                self.original_transform = original_transform
+                def _decorate(function: Transformation):
 
-                self.datatype = datatype
+                    @wraps(function)
 
-                if not inspect.isclass(self.original_transform):
+                    def wrapped(*args, **kwargs):
 
-                    def _decorate(function: Transformation):
+                        args = convert_args(*args)
 
-                        @wraps(function)
+                        kwargs = convert_kwargs(**kwargs)
 
-                        def wrapped(*args, **kwargs):
+                        return function(*args, **kwargs)
 
-                            args = convert_args(*args)
-
-                            kwargs = convert_kwargs(**kwargs)
-
-                            return function(*args, **kwargs)
-
-                        wrapped.__signature__ = inspect.signature(function)
-
-                        daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
-
-                        _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
-
-                        _udf.__vexpresso_transform = True
-
-                        return _udf
-
-                    self.transform = _decorate(original_transform)
-
-                else:
+                    wrapped.__signature__ = inspect.signature(function)
 
                     daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
 
-                    @daft.udf(return_dtype=daft_datatype())
+                    _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
 
-                    class _Transformation:
+                    _udf.__vexpresso_transform = True
 
-                        def __init__(self):
+                    return _udf
+
+                return _decorate(original_transform)
+
+            else:
+
+                daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
+
+                if isinstance(original_transform, type):
+
+                    sig = inspect.signature(getattr(original_transform, function))
+
+                else:
+
+                    sig = inspect.signature(getattr(original_transform.__class__, function))
+
+                class _Transformation:
+
+                    def __init__(self):
+
+                        if isinstance(original_transform, type):
+
+                            # hasn't been initialized yet
 
                             self._transform = original_transform(**init_kwargs)
 
-                        def __call__(self, *args, **kwargs):
+                        else:
 
-                            args = convert_args(*args)
+                            self._transform = original_transform
 
-                            kwargs = convert_kwargs(**kwargs)
+                    def __call__(self, *args, **kwargs):
 
-                            return self._transform(*args, **kwargs)
+                        args = convert_args(*args)
 
-                    _Transformation.__vexpresso_transform = True
+                        kwargs = convert_kwargs(**kwargs)
 
-                    _Transformation.__call__.__signature__ = inspect.signature(
+                        return getattr(self._transform, function)(*args, **kwargs)
 
-                        original_transform.__call__
+                _Transformation.__call__.__signature__ = sig
 
-                    )
+                _udf = daft.udf(return_dtype=daft_datatype())(_Transformation)
 
-                    self.transform = _Transformation
+                _udf.__vexpresso_transform = True
+
+                return _udf
 
         
 
@@ -191,15 +217,27 @@
 
             init_kwargs={},
 
+            function: str = "__call__",
+
         ):
 
-            wrapper = TransformationWrapper(
+            if getattr(original_function, "__vexpresso_transform", None) is None:
 
-                original_function, datatype=datatype, init_kwargs=init_kwargs
+                wrapper = transform_wrapper(
 
-            )
+                    original_function,
 
-            return wrapper.transform
+                    datatype=datatype,
+
+                    init_kwargs=init_kwargs,
+
+                    function=function,
+
+                )
+
+                return wrapper
+
+            return original_function
 
         
 
@@ -481,6 +519,26 @@ def deep_get(
             return dictionary
 
     
+### get_batch_size
+
+```python3
+def get_batch_size(
+    embeddings: 'Iterable[Any]'
+) -> 'int'
+```
+
+??? example "View Source"
+        def get_batch_size(embeddings: Iterable[Any]) -> int:
+
+            if isinstance(embeddings, np.ndarray):
+
+                if len(embeddings.shape) == 1:
+
+                    return 1
+
+            return len(embeddings)
+
+    
 ### get_field_name_and_key
 
 ```python3
@@ -524,7 +582,13 @@ def lazy(
 
                     if not lazy:
 
-                        collection = collection.execute()
+                        if isinstance(collection, list):
+
+                            collection = [c.execute() for c in collection]
+
+                        else:
+
+                            collection = collection.execute()
 
                     return collection
 
@@ -533,13 +597,107 @@ def lazy(
             return dec
 
     
+### transform_wrapper
+
+```python3
+def transform_wrapper(
+    original_transform: 'Transformation' = None,
+    datatype: 'str' = 'python',
+    init_kwargs: 'Dict[str, Any]' = {},
+    function: 'str' = '__call__'
+)
+```
+
+??? example "View Source"
+        def transform_wrapper(
+
+            original_transform: Transformation = None,
+
+            datatype: str = "python",
+
+            init_kwargs: Dict[str, Any] = {},
+
+            function: str = "__call__",
+
+        ):
+
+            if inspect.isfunction(original_transform):
+
+                def _decorate(function: Transformation):
+
+                    @wraps(function)
+
+                    def wrapped(*args, **kwargs):
+
+                        args = convert_args(*args)
+
+                        kwargs = convert_kwargs(**kwargs)
+
+                        return function(*args, **kwargs)
+
+                    wrapped.__signature__ = inspect.signature(function)
+
+                    daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
+
+                    _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
+
+                    _udf.__vexpresso_transform = True
+
+                    return _udf
+
+                return _decorate(original_transform)
+
+            else:
+
+                daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
+
+                if isinstance(original_transform, type):
+
+                    sig = inspect.signature(getattr(original_transform, function))
+
+                else:
+
+                    sig = inspect.signature(getattr(original_transform.__class__, function))
+
+                class _Transformation:
+
+                    def __init__(self):
+
+                        if isinstance(original_transform, type):
+
+                            # hasn't been initialized yet
+
+                            self._transform = original_transform(**init_kwargs)
+
+                        else:
+
+                            self._transform = original_transform
+
+                    def __call__(self, *args, **kwargs):
+
+                        args = convert_args(*args)
+
+                        kwargs = convert_kwargs(**kwargs)
+
+                        return getattr(self._transform, function)(*args, **kwargs)
+
+                _Transformation.__call__.__signature__ = sig
+
+                _udf = daft.udf(return_dtype=daft_datatype())(_Transformation)
+
+                _udf.__vexpresso_transform = True
+
+                return _udf
+
+    
 ### transformation
 
 ```python3
 def transformation(
     original_function: 'Transformation' = None,
     datatype: 'str' = 'python',
-    init_kwargs={}
+    init_kwargs={},
+    function: 'str' = '__call__'
 )
 ```
 
@@ -552,15 +710,27 @@ def transformation(
 
             init_kwargs={},
 
+            function: str = "__call__",
+
         ):
 
-            wrapper = TransformationWrapper(
+            if getattr(original_function, "__vexpresso_transform", None) is None:
 
-                original_function, datatype=datatype, init_kwargs=init_kwargs
+                wrapper = transform_wrapper(
 
-            )
+                    original_function,
 
-            return wrapper.transform
+                    datatype=datatype,
+
+                    init_kwargs=init_kwargs,
+
+                    function=function,
+
+                )
+
+                return wrapper
+
+            return original_function
 
 ## Classes
 
@@ -2198,90 +2368,3 @@ Gets the maximum of all resources in a list of ResourceRequests as a new Resourc
                     ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
 
                 )
-
-### TransformationWrapper
-
-```python3
-class TransformationWrapper(
-    original_transform: 'Transformation' = None,
-    datatype: 'str' = 'python',
-    init_kwargs={}
-)
-```
-
-??? example "View Source"
-        class TransformationWrapper:
-
-            def __init__(
-
-                self,
-
-                original_transform: Transformation = None,
-
-                datatype: str = "python",
-
-                init_kwargs={},
-
-            ):
-
-                self.original_transform = original_transform
-
-                self.datatype = datatype
-
-                if not inspect.isclass(self.original_transform):
-
-                    def _decorate(function: Transformation):
-
-                        @wraps(function)
-
-                        def wrapped(*args, **kwargs):
-
-                            args = convert_args(*args)
-
-                            kwargs = convert_kwargs(**kwargs)
-
-                            return function(*args, **kwargs)
-
-                        wrapped.__signature__ = inspect.signature(function)
-
-                        daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
-
-                        _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
-
-                        _udf.__vexpresso_transform = True
-
-                        return _udf
-
-                    self.transform = _decorate(original_transform)
-
-                else:
-
-                    daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
-
-                    @daft.udf(return_dtype=daft_datatype())
-
-                    class _Transformation:
-
-                        def __init__(self):
-
-                            self._transform = original_transform(**init_kwargs)
-
-                        def __call__(self, *args, **kwargs):
-
-                            args = convert_args(*args)
-
-                            kwargs = convert_kwargs(**kwargs)
-
-                            return self._transform(*args, **kwargs)
-
-                    _Transformation.__vexpresso_transform = True
-
-                    _Transformation.__call__.__signature__ = inspect.signature(
-
-                        original_transform.__call__
-
-                    )
-
-                    self.transform = _Transformation
-
-------
