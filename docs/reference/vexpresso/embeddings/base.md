@@ -3,21 +3,39 @@
 ??? example "View Source"
         import abc
 
-        from typing import Any, List
+        from typing import Any, Dict, List
 
-        from vexpresso.utils import Transformation, transformation
+        from vexpresso.utils import DataType, Transformation, transformation
 
         
 
-        def get_embedding_fn(embedding_fn: Transformation) -> Transformation:
+        def get_embedding_fn(
+
+            embedding_fn: Transformation,
+
+            datatype: DataType = DataType.python(),
+
+            init_kwargs: Dict[str, Any] = {},
+
+        ) -> Transformation:
 
             # langchain check
 
             if getattr(embedding_fn, "embed_documents", None) is not None:
 
-                return transformation(embedding_fn, function="embed_documents")
+                return transformation(
 
-            return transformation(embedding_fn)
+                    embedding_fn,
+
+                    datatype=datatype,
+
+                    function="embed_documents",
+
+                    init_kwargs=init_kwargs,
+
+                )
+
+            return transformation(embedding_fn, datatype=datatype, init_kwargs=init_kwargs)
 
         
 
@@ -40,20 +58,40 @@
 
 ```python3
 def get_embedding_fn(
-    embedding_fn: Callable[[List[Any], Any], List[Any]]
+    embedding_fn: Callable[[List[Any], Any], List[Any]],
+    datatype: daft.datatype.DataType = Python,
+    init_kwargs: Dict[str, Any] = {}
 ) -> Callable[[List[Any], Any], List[Any]]
 ```
 
 ??? example "View Source"
-        def get_embedding_fn(embedding_fn: Transformation) -> Transformation:
+        def get_embedding_fn(
+
+            embedding_fn: Transformation,
+
+            datatype: DataType = DataType.python(),
+
+            init_kwargs: Dict[str, Any] = {},
+
+        ) -> Transformation:
 
             # langchain check
 
             if getattr(embedding_fn, "embed_documents", None) is not None:
 
-                return transformation(embedding_fn, function="embed_documents")
+                return transformation(
 
-            return transformation(embedding_fn)
+                    embedding_fn,
+
+                    datatype=datatype,
+
+                    function="embed_documents",
+
+                    init_kwargs=init_kwargs,
+
+                )
+
+            return transformation(embedding_fn, datatype=datatype, init_kwargs=init_kwargs)
 
 ## Classes
 

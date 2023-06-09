@@ -2,10 +2,10 @@ from typing import List
 
 import numpy as np
 
-from vexpresso.retriever.retriever import RetrievalOutput, Retriever
+from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
 
 
-class FaissRetriever(Retriever):
+class FaissRetriever(BaseRetriever):
     def __init__(self):
         self._faiss = None
         try:

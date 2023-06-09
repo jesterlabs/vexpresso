@@ -1,10 +1,10 @@
+from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
 from vexpresso.retriever.faiss import FaissRetriever
-from vexpresso.retriever.np import NumpyRetriever
-from vexpresso.retriever.retriever import RetrievalOutput, Retriever
+from vexpresso.retriever.np import Retriever
 
 __all__ = [
+    "BaseRetriever",
     "Retriever",
-    "NumpyRetriever",
     "RetrievalOutput",
     "FaissRetriever",
 ]

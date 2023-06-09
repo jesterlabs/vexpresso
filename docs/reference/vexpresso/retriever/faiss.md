@@ -5,11 +5,11 @@
 
         import numpy as np
 
-        from vexpresso.retriever.retriever import RetrievalOutput, Retriever
+        from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
 
         
 
-        class FaissRetriever(Retriever):
+        class FaissRetriever(BaseRetriever):
 
             def __init__(self):
 
@@ -82,7 +82,7 @@ class FaissRetriever(
 ```
 
 ??? example "View Source"
-        class FaissRetriever(Retriever):
+        class FaissRetriever(BaseRetriever):
 
             def __init__(self):
 
@@ -148,7 +148,7 @@ class FaissRetriever(
 
 #### Ancestors (in MRO)
 
-* vexpresso.retriever.retriever.Retriever
+* vexpresso.retriever.base.BaseRetriever
 
 #### Class variables
 
@@ -167,7 +167,7 @@ def retrieve(
     query_embeddings: numpy.ndarray,
     embeddings: numpy.ndarray,
     k: int = 4
-) -> List[vexpresso.retriever.retriever.RetrievalOutput]
+) -> List[vexpresso.retriever.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids

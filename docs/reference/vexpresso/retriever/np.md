@@ -5,7 +5,7 @@
 
         import numpy as np
 
-        from vexpresso.retriever.retriever import RetrievalOutput, Retriever
+        from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
 
         
 
@@ -71,7 +71,7 @@
 
         
 
-        class NumpyRetriever(Retriever):
+        class Retriever(BaseRetriever):
 
             def __init__(self, similarity_fn: str = "cosine"):
 
@@ -270,16 +270,16 @@ def is_batched(
 
 ## Classes
 
-### NumpyRetriever
+### Retriever
 
 ```python3
-class NumpyRetriever(
+class Retriever(
     similarity_fn: str = 'cosine'
 )
 ```
 
 ??? example "View Source"
-        class NumpyRetriever(Retriever):
+        class Retriever(BaseRetriever):
 
             def __init__(self, similarity_fn: str = "cosine"):
 
@@ -373,7 +373,7 @@ class NumpyRetriever(
 
 #### Ancestors (in MRO)
 
-* vexpresso.retriever.retriever.Retriever
+* vexpresso.retriever.base.BaseRetriever
 
 #### Class variables
 
@@ -392,7 +392,7 @@ def retrieve(
     query_embeddings: numpy.ndarray,
     embeddings: List[Any],
     k: int = 4
-) -> List[vexpresso.retriever.retriever.RetrievalOutput]
+) -> List[vexpresso.retriever.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids

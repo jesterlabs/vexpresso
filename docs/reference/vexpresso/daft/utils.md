@@ -210,7 +210,7 @@ def retrieve(
     df: daft.dataframe.dataframe.DataFrame,
     embedding_column_name: str,
     query_embeddings: Iterable[Any],
-    retriever: vexpresso.retriever.retriever.Retriever,
+    retriever: vexpresso.retriever.np.Retriever,
     k: int = None,
     sort: bool = True,
     score_column_name: Optional[str] = None,

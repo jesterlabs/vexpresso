@@ -184,12 +184,11 @@ class FilterMethods:
     def custom(cls, field: str, function_kwargs) -> Expression:
         field_name, keys = get_field_name_and_key(field)
 
-        if len(function_kwargs) == 1:
-            function_kwargs = (function_kwargs, {})
-        function, kwargs = function_kwargs
+        function = function_kwargs.get("function")
+        function_kwargs = function_kwargs.get("function_kwargs", {})
 
         def _apply_fn(col_val) -> bool:
-            return function(deep_get(col_val, keys=keys), **kwargs)
+            return function(deep_get(col_val, keys=keys), **function_kwargs)
 
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 

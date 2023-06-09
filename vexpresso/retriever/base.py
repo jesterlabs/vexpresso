@@ -16,7 +16,7 @@ class RetrievalOutput:
         return {k: str(v) for k, v in asdict(self).items()}
 
 
-class Retriever(metaclass=abc.ABCMeta):
+class BaseRetriever(metaclass=abc.ABCMeta):
     SUPPORTED_TYPES = [np.dtype]
 
     @abc.abstractmethod

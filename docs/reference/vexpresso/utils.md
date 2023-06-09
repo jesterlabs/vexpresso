@@ -123,15 +123,13 @@
 
         # TODO: CHANGE TO ENUM
 
-        DATATYPES = {"python": daft.DataType.python}
-
         
 
         def transform_wrapper(
 
             original_transform: Transformation = None,
 
-            datatype: str = "python",
+            datatype: DataType = DataType.python(),
 
             init_kwargs: Dict[str, Any] = {},
 
@@ -155,9 +153,7 @@
 
                     wrapped.__signature__ = inspect.signature(function)
 
-                    daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
-
-                    _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
+                    _udf = daft.udf(return_dtype=datatype)(wrapped)
 
                     _udf.__vexpresso_transform = True
 
@@ -166,8 +162,6 @@
                 return _decorate(original_transform)
 
             else:
-
-                daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
 
                 if isinstance(original_transform, type):
 
@@ -201,7 +195,7 @@
 
                 _Transformation.__call__.__signature__ = sig
 
-                _udf = daft.udf(return_dtype=daft_datatype())(_Transformation)
+                _udf = daft.udf(return_dtype=datatype)(_Transformation)
 
                 _udf.__vexpresso_transform = True
 
@@ -213,7 +207,7 @@
 
             original_function: Transformation = None,
 
-            datatype: str = "python",
+            datatype: DataType = DataType.python(),
 
             init_kwargs={},
 
@@ -410,10 +404,6 @@
 ## Variables
 
 ```python3
-DATATYPES
-```
-
-```python3
 Transformation
 ```
 
@@ -602,7 +592,7 @@ def lazy(
 ```python3
 def transform_wrapper(
     original_transform: 'Transformation' = None,
-    datatype: 'str' = 'python',
+    datatype: 'DataType' = Python,
     init_kwargs: 'Dict[str, Any]' = {},
     function: 'str' = '__call__'
 )
@@ -613,7 +603,7 @@ def transform_wrapper(
 
             original_transform: Transformation = None,
 
-            datatype: str = "python",
+            datatype: DataType = DataType.python(),
 
             init_kwargs: Dict[str, Any] = {},
 
@@ -637,9 +627,7 @@ def transform_wrapper(
 
                     wrapped.__signature__ = inspect.signature(function)
 
-                    daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
-
-                    _udf = daft.udf(return_dtype=daft_datatype())(wrapped)
+                    _udf = daft.udf(return_dtype=datatype)(wrapped)
 
                     _udf.__vexpresso_transform = True
 
@@ -648,8 +636,6 @@ def transform_wrapper(
                 return _decorate(original_transform)
 
             else:
-
-                daft_datatype = DATATYPES.get(datatype, DATATYPES["python"])
 
                 if isinstance(original_transform, type):
 
@@ -683,7 +669,7 @@ def transform_wrapper(
 
                 _Transformation.__call__.__signature__ = sig
 
-                _udf = daft.udf(return_dtype=daft_datatype())(_Transformation)
+                _udf = daft.udf(return_dtype=datatype)(_Transformation)
 
                 _udf.__vexpresso_transform = True
 
@@ -695,7 +681,7 @@ def transform_wrapper(
 ```python3
 def transformation(
     original_function: 'Transformation' = None,
-    datatype: 'str' = 'python',
+    datatype: 'DataType' = Python,
     init_kwargs={},
     function: 'str' = '__call__'
 )
@@ -706,7 +692,7 @@ def transformation(
 
             original_function: Transformation = None,
 
-            datatype: str = "python",
+            datatype: DataType = DataType.python(),
 
             init_kwargs={},
 

@@ -2,7 +2,7 @@ from typing import Any, List
 
 import numpy as np
 
-from vexpresso.retriever.retriever import RetrievalOutput, Retriever
+from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
 
 
 def is_batched(arr: np.ndarray) -> bool:
@@ -41,7 +41,7 @@ def get_similarity_fn(name: str):
     return functions.get(name, functions["cosine"])
 
 
-class NumpyRetriever(Retriever):
+class Retriever(BaseRetriever):
     def __init__(self, similarity_fn: str = "cosine"):
         self.similarity_fn = get_similarity_fn(similarity_fn)
 
