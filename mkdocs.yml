@@ -1,48 +1,6 @@
 # site_name: REPLACE_PACKAGE_NAME
 # copyright: Copyright (c) 2023-present REPLACE_FULL_NAME <REPLACE_EMAIL>
 
-# theme:
-#   name: material
-#   palette:
-#     - scheme: default
-#       toggle:
-#         icon: material/brightness-7
-#         name: Switch to dark mode
-#     - scheme: slate
-#       toggle:
-#         icon: material/brightness-4
-#         name: Switch to light mode
-#   font:
-#     text: Roboto
-#     code: Roboto Mono
-
-# markdown_extensions:
-#   - pymdownx.highlight:
-#       anchor_linenums: true
-#   - pymdownx.superfences
-
-# plugins:
-#   - search:
-#   - git-revision-date-localized:
-#       type: timeago
-#       enable_creation_date: true
-#   - mkdocstrings:
-
-# extra:
-#   social:
-#     - icon: fontawesome/brands/python
-#       link: https://pypi.org/project/REPLACE_PACKAGE_NAME/
-#     - icon: fontawesome/brands/github
-#       link: https://github.com/REPLACE_GITHUB_USERNAME
-#     # - icon: fontawesome/brands/twitter
-#     #   link: https://twitter.com/REPLACE_TWITTER_USERNAME
-#     # - icon: fontawesome/brands/linkedin
-#     #   link: https://www.linkedin.com/in/REPLACE_LINKEDIN_USERNAME/
-
-# nav:
-#   - Home: index.md
-#   - License: license.md
-
 
 # mkdocs.yml
 site_name: Vexpresso Docs
@@ -50,16 +8,52 @@ site_name: Vexpresso Docs
 theme:
   name: material
   features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    # - content.tabs.link
+    - content.tooltips
+    # - header.autohide
+    # - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    # - navigation.instant
+    # - navigation.prune
+    - navigation.sections
+    # - navigation.tabs
+    # - navigation.tabs.sticky
+    # - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
     - tabs
-    - toc.integrate
-  icon:
-    repo: fontawesome/brands/github
+    # - toc.integrate
   palette:
-    primary: teal
-    accent: purple
-
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  # favicon: assets/favicon.png
+  # icon:
+  #   logo: logo
 
 plugins:
+  - mkdocs-jupyter
   - search
   - literate-nav
   - mkdocstrings

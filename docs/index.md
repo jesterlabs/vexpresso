@@ -1,17 +1,19 @@
 # Welcome to Vexpresso
 
+![](_static/cup.png)
+
 Vexpresso is a quick, easy to use, and scalable vector database built on [Daft](https://www.getdaft.io/)
 
-## Commands
+## Installation
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+#### From PyPI
 
-## Project layout
+```pip install vexpresso```
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+#### From source
+
+```
+git clone git@github.com:shyamsn97/vexpresso.git
+cd vexpresso
+pip install -e .
+```

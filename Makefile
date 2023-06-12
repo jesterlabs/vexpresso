@@ -60,10 +60,14 @@ doc: ## generate Sphinx HTML documentation, including API docs
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
 
-pdoc:
+doc:
 	rm -r docs/reference/
 	pdocs as_markdown vexpresso -o docs/reference
 	rm docs/reference/vexpresso/index.md
+	cp examples/*.ipynb docs/examples/
+	rm docs/examples/Showcase.ipynb
+	cp examples/Showcase.ipynb docs/
+	mkdocs serve
 
 serve-docs:
 	mkdocs serve
