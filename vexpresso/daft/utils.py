@@ -10,7 +10,12 @@ from vexpresso.utils import DataType, ResourceRequest, get_batch_size
 
 @daft.udf(return_dtype=DataType.int64())
 def indices(columnn):
-    return list(range(len(columnn)))
+    return list(range(len(columnn.to_pylist())))
+
+
+@daft.udf(return_dtype=DataType.python())
+def add_column(columnn, values):
+    return values
 
 
 @daft.udf(return_dtype=DataType.python())

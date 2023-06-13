@@ -200,6 +200,17 @@ class FilterHelper:
     def filter(
         cls, df: daft.DataFrame, filter_conditions: Dict[str, Dict[str, str]]
     ) -> daft.DataFrame:
+        """
+        Filter format:
+        {
+            <field>: {
+                <filter_method>: <value>
+            },
+            <field>: {
+                <filter_method>: <value>
+            },
+        }
+        """
         filters = []
         for metadata_field in filter_conditions:
             metadata_conditions = filter_conditions[metadata_field]

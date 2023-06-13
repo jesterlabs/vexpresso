@@ -14,7 +14,7 @@ from daft import col
 
 from vexpresso.collection import Collection
 from vexpresso.daft.filter import FilterHelper
-from vexpresso.daft.utils import Wrapper, indices, retrieve
+from vexpresso.daft.utils import Wrapper, add_column, indices, retrieve
 from vexpresso.embeddings import get_embedding_fn
 from vexpresso.retriever import BaseRetriever, Retriever
 from vexpresso.utils import (
@@ -57,11 +57,21 @@ class DaftCollection(Collection):
                 self.daft_df = daft.from_pylist(_metadata)
             else:
                 self.daft_df = daft.from_pydict({**_metadata})
-            self.daft_df = self.daft_df.with_column(
-                "vexpresso_index", indices(col(self.column_names[0]))
-            )
             if not lazy:
                 self.daft_df = self.daft_df.collect()
+
+    @lazy(default=True)
+    def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
+        # for some reason this is super slow
+        if isinstance(idx, int):
+            idx = [idx]
+
+        collection = (
+            self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+            .filter({"_vexpresso_index": {"isin": idx}})
+            .exclude("_vexpresso_index")
+        )
+        return collection
 
     @property
     def df(self) -> Wrapper:
@@ -73,16 +83,18 @@ class DaftCollection(Collection):
     def __getitem__(self, column: str) -> DaftCollection:
         return self.select(column)
 
-    def __setitem__(self, column: str, value: List[Any]) -> None:
-        self.daft_df = self.add_column(column=value, name=column).df
-
     def cast(
         self, column: str = None, datatype: DataType = DataType.python()
     ) -> DaftCollection:
         if column is None:
             columns = [col(c).cast(datatype) for c in self.column_names]
         else:
-            columns = [col(column).cast(datatype)]
+            columns = []
+            for c in self.column_names:
+                if c == column:
+                    columns.append(col(column).cast(datatype))
+                else:
+                    columns.append(c)
         return self.from_daft_df(self.daft_df.select(*columns))
 
     def add_rows(self, data: List[Dict[str, Any]]) -> DaftCollection:
@@ -114,13 +126,15 @@ class DaftCollection(Collection):
             embedding_functions=self.embedding_functions,
         )
 
+    @lazy(default=True)
     def add_column(self, column: List[Any], name: str = None) -> DaftCollection:
         if name is None:
             num_columns = len(self.daft_df.column_names)
             name = f"column_{num_columns}"
 
-        new_df = daft.from_pydict({name: column})
-        df = self.daft_df.with_column(name, new_df[name])
+        df = self.daft_df.with_column(
+            name, add_column(col(self.column_names[0]), column)
+        )
         return self.from_daft_df(df)
 
     def collect(self, in_place: bool = False):
