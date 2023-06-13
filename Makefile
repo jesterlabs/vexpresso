@@ -67,11 +67,10 @@ doc:
 	cp examples/*.ipynb docs/examples/
 	rm docs/examples/Showcase.ipynb
 	cp examples/Showcase.ipynb docs/
-	mkdocs serve
 
 serve-docs:
 	mkdocs serve
 
-commit: install pdoc
+commit: install doc
 	git add .
 	git commit -a

@@ -18,7 +18,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'BaseRetriever' = <vexpresso.retriever.np.Retriever object at 0x7fadb6ed8070>,
+    retriever: 'BaseRetriever' = <vexpresso.retriever.np.Retriever object at 0x7f2639a96040>,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None,
     lazy: 'bool' = True
@@ -80,15 +80,31 @@ class DaftCollection(
 
                         self.daft_df = daft.from_pydict({**_metadata})
 
-                    self.daft_df = self.daft_df.with_column(
-
-                        "vexpresso_index", indices(col(self.column_names[0]))
-
-                    )
-
                     if not lazy:
 
                         self.daft_df = self.daft_df.collect()
+
+            @lazy(default=True)
+
+            def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
+
+                # for some reason this is super slow
+
+                if isinstance(idx, int):
+
+                    idx = [idx]
+
+                collection = (
+
+                    self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+
+                    .filter({"_vexpresso_index": {"isin": idx}})
+
+                    .exclude("_vexpresso_index")
+
+                )
+
+                return collection
 
             @property
 
@@ -104,10 +120,6 @@ class DaftCollection(
 
                 return self.select(column)
 
-            def __setitem__(self, column: str, value: List[Any]) -> None:
-
-                self.daft_df = self.add_column(column=value, name=column).df
-
             def cast(
 
                 self, column: str = None, datatype: DataType = DataType.python()
@@ -120,7 +132,17 @@ class DaftCollection(
 
                 else:
 
-                    columns = [col(column).cast(datatype)]
+                    columns = []
+
+                    for c in self.column_names:
+
+                        if c == column:
+
+                            columns.append(col(column).cast(datatype))
+
+                        else:
+
+                            columns.append(c)
 
                 return self.from_daft_df(self.daft_df.select(*columns))
 
@@ -172,6 +194,8 @@ class DaftCollection(
 
                 )
 
+            @lazy(default=True)
+
             def add_column(self, column: List[Any], name: str = None) -> DaftCollection:
 
                 if name is None:
@@ -180,9 +204,11 @@ class DaftCollection(
 
                     name = f"column_{num_columns}"
 
-                new_df = daft.from_pydict({name: column})
+                df = self.daft_df.with_column(
 
-                df = self.daft_df.with_column(name, new_df[name])
+                    name, add_column(col(self.column_names[0]), column)
+
+                )
 
                 return self.from_daft_df(df)
 
@@ -1012,6 +1038,8 @@ def add_column(
 ```
 
 ??? example "View Source"
+            @lazy(default=True)
+
             def add_column(self, column: List[Any], name: str = None) -> DaftCollection:
 
                 if name is None:
@@ -1020,9 +1048,11 @@ def add_column(
 
                     name = f"column_{num_columns}"
 
-                new_df = daft.from_pydict({name: column})
+                df = self.daft_df.with_column(
 
-                df = self.daft_df.with_column(name, new_df[name])
+                    name, add_column(col(self.column_names[0]), column)
+
+                )
 
                 return self.from_daft_df(df)
 
@@ -1299,7 +1329,17 @@ def cast(
 
                 else:
 
-                    columns = [col(column).cast(datatype)]
+                    columns = []
+
+                    for c in self.column_names:
+
+                        if c == column:
+
+                            columns.append(col(column).cast(datatype))
+
+                        else:
+
+                            columns.append(c)
 
                 return self.from_daft_df(self.daft_df.select(*columns))
 
@@ -1563,6 +1603,39 @@ def from_data(
                     embedding_functions=self.embedding_functions,
 
                 )
+
+    
+#### iloc
+
+```python3
+def iloc(
+    self,
+    idx: 'Union[int, Iterable[int]]'
+) -> 'DaftCollection'
+```
+
+??? example "View Source"
+            @lazy(default=True)
+
+            def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
+
+                # for some reason this is super slow
+
+                if isinstance(idx, int):
+
+                    idx = [idx]
+
+                collection = (
+
+                    self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+
+                    .filter({"_vexpresso_index": {"isin": idx}})
+
+                    .exclude("_vexpresso_index")
+
+                )
+
+                return collection
 
     
 #### query

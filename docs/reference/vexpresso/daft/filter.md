@@ -317,6 +317,28 @@
 
             ) -> daft.DataFrame:
 
+                """
+
+                Filter format:
+
+                {
+
+                    <field>: {
+
+                        <filter_method>: <value>
+
+                    },
+
+                    <field>: {
+
+                        <filter_method>: <value>
+
+                    },
+
+                }
+
+                """
+
                 filters = []
 
                 for metadata_field in filter_conditions:
@@ -396,6 +418,28 @@ class FilterHelper(
 
             ) -> daft.DataFrame:
 
+                """
+
+                Filter format:
+
+                {
+
+                    <field>: {
+
+                        <filter_method>: <value>
+
+                    },
+
+                    <field>: {
+
+                        <filter_method>: <value>
+
+                    },
+
+                }
+
+                """
+
                 filters = []
 
                 for metadata_field in filter_conditions:
@@ -470,6 +514,17 @@ def filter(
 ) -> daft.dataframe.dataframe.DataFrame
 ```
 
+Filter format:
+
+{
+    <field>: {
+        <filter_method>: <value>
+    },
+    <field>: {
+        <filter_method>: <value>
+    },
+}
+
 ??? example "View Source"
             @classmethod
 
@@ -478,6 +533,28 @@ def filter(
                 cls, df: daft.DataFrame, filter_conditions: Dict[str, Dict[str, str]]
 
             ) -> daft.DataFrame:
+
+                """
+
+                Filter format:
+
+                {
+
+                    <field>: {
+
+                        <filter_method>: <value>
+
+                    },
+
+                    <field>: {
+
+                        <filter_method>: <value>
+
+                    },
+
+                }
+
+                """
 
                 filters = []
 

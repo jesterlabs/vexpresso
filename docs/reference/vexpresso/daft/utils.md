@@ -19,7 +19,15 @@
 
         def indices(columnn):
 
-            return list(range(len(columnn)))
+            return list(range(len(columnn.to_pylist())))
+
+        
+
+        @daft.udf(return_dtype=DataType.python())
+
+        def add_column(columnn, values):
+
+            return values
 
         
 
@@ -190,6 +198,10 @@
                 return self.collection.from_daft_df(daft_df)
 
 ## Variables
+
+```python3
+add_column
+```
 
 ```python3
 indices
