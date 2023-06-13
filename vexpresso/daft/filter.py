@@ -30,12 +30,14 @@ class FilterMethods:
             print("----------------------------------")
 
     @classmethod
-    def eq(cls, field: str, value: Union[str, int, float]) -> Expression:
+    def eq(
+        cls, field: str, value: Union[str, int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} equal to {value} (str, int, float)
         """
 
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) == value
@@ -43,11 +45,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def neq(cls, field: str, value: Union[str, int, float]) -> Expression:
+    def neq(
+        cls, field: str, value: Union[str, int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} not equal to {value} (str, int, float)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) != value
@@ -55,11 +59,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def gt(cls, field: str, value: Union[int, float]) -> Expression:
+    def gt(
+        cls, field: str, value: Union[int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} greater than {value} (int, float)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             col_val = deep_get(col_val, keys=keys)
@@ -70,11 +76,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def gte(cls, field: str, value: Union[int, float]) -> Expression:
+    def gte(
+        cls, field: str, value: Union[int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} greater than or equal to {value} (int, float)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             col_val = deep_get(col_val, keys=keys)
@@ -85,11 +93,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def lt(cls, field: str, value: Union[int, float]) -> Expression:
+    def lt(
+        cls, field: str, value: Union[int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} less than {value} (int, float)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             col_val = deep_get(col_val, keys=keys)
@@ -100,11 +110,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def lte(cls, field: str, value: Union[int, float]) -> Expression:
+    def lte(
+        cls, field: str, value: Union[int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} less than or equal to {value} (int, float)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             col_val = deep_get(col_val, keys=keys)
@@ -115,11 +127,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def isin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+    def isin(
+        cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+    ) -> Expression:
         """
         {field} is in list of {values} (list of str, int, or float)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) in values
@@ -127,11 +141,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def notin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+    def notin(
+        cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+    ) -> Expression:
         """
         {field} not in list of {values} (list of str, int, or float)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             return deep_get(col_val, keys=keys) not in values
@@ -139,11 +155,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def contains(cls, field: str, value: Union[str, int, float]) -> Expression:
+    def contains(
+        cls, field: str, value: Union[str, int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} (str) contains {value} (str)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             col_val = deep_get(col_val, keys=keys)
@@ -154,11 +172,13 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def notcontains(cls, field: str, value: Union[str, int, float]) -> Expression:
+    def notcontains(
+        cls, field: str, value: Union[str, int, float], column_names: List[str]
+    ) -> Expression:
         """
         {field} (str) does not contains {value} (str)
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> bool:
             col_val = deep_get(col_val, keys=keys)
@@ -169,20 +189,24 @@ class FilterMethods:
         return col(field_name).apply(_apply_fn, return_dtype=DataType.bool())
 
     @classmethod
-    def select(cls, field: str) -> Expression:
+    def select(cls, field: str, column_names: List[str]) -> Expression:
         """
         select field
         """
-        field_name, keys = get_field_name_and_key(field)
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         def _apply_fn(col_val) -> Any:
             return deep_get(col_val, keys=keys)
 
-        return col(field_name).apply(_apply_fn, return_dtype=DataType.python())
+        return (
+            col(field_name)
+            .apply(_apply_fn, return_dtype=DataType.python())
+            .alias(field)
+        )
 
     @classmethod
-    def custom(cls, field: str, function_kwargs) -> Expression:
-        field_name, keys = get_field_name_and_key(field)
+    def custom(cls, field: str, function_kwargs, column_names: List[str]) -> Expression:
+        field_name, keys = get_field_name_and_key(field, column_names)
 
         function = function_kwargs.get("function")
         function_kwargs = function_kwargs.get("function_kwargs", {})
@@ -212,6 +236,7 @@ class FilterHelper:
         }
         """
         filters = []
+        column_names = df.column_names
         for metadata_field in filter_conditions:
             metadata_conditions = filter_conditions[metadata_field]
             if isinstance(metadata_conditions, dict):
@@ -228,7 +253,9 @@ class FilterHelper:
                         )
                     value = m[filter_method]
                     metadata_condition_fields.append(
-                        cls.FILTER_METHODS[filter_method](metadata_field, value)
+                        cls.FILTER_METHODS[filter_method](
+                            metadata_field, value, column_names
+                        )
                     )
             filt = reduce(lambda a, b: a | b, metadata_condition_fields)
             filters.append(filt)
@@ -237,5 +264,6 @@ class FilterHelper:
 
     @classmethod
     def select(cls, df: daft.DataFrame, *args) -> daft.DataFrame:
-        expressions = [FilterMethods.select(c) for c in args]
+        column_names = df.column_names
+        expressions = [FilterMethods.select(c, column_names) for c in args]
         return df.select(*expressions)

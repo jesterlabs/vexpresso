@@ -59,6 +59,9 @@ class DaftCollection(Collection):
                 self.daft_df = daft.from_pydict({**_metadata})
             if not lazy:
                 self.daft_df = self.daft_df.collect()
+            self.daft_df = self.daft_df.with_column(
+                "_vexpresso_index", indices(col(self.column_names[0]))
+            )
 
     @lazy(default=True)
     def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
@@ -72,6 +75,15 @@ class DaftCollection(Collection):
             .exclude("_vexpresso_index")
         )
         return collection
+
+    @lazy(default=True)
+    def rename(self, columns: List[str], to: List[str]) -> DaftCollection:
+        if len(columns) != len(to):
+            raise ValueError(
+                "Columns and destination column lists should be the same length!"
+            )
+        expressions = [col(c).alias(t) for c, t in zip(columns, to)]
+        return self.df.select(*expressions)
 
     @property
     def df(self) -> Wrapper:
