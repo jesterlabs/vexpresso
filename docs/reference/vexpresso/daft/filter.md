@@ -55,7 +55,11 @@
 
             @classmethod
 
-            def eq(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def eq(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -63,7 +67,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -73,7 +77,11 @@
 
             @classmethod
 
-            def neq(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def neq(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -81,7 +89,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -91,7 +99,11 @@
 
             @classmethod
 
-            def gt(cls, field: str, value: Union[int, float]) -> Expression:
+            def gt(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -99,7 +111,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -115,7 +127,11 @@
 
             @classmethod
 
-            def gte(cls, field: str, value: Union[int, float]) -> Expression:
+            def gte(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -123,7 +139,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -139,7 +155,11 @@
 
             @classmethod
 
-            def lt(cls, field: str, value: Union[int, float]) -> Expression:
+            def lt(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -147,7 +167,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -163,7 +183,11 @@
 
             @classmethod
 
-            def lte(cls, field: str, value: Union[int, float]) -> Expression:
+            def lte(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -171,7 +195,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -187,7 +211,11 @@
 
             @classmethod
 
-            def isin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+            def isin(
+
+                cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -195,7 +223,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -205,7 +233,11 @@
 
             @classmethod
 
-            def notin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+            def notin(
+
+                cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -213,7 +245,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -223,7 +255,11 @@
 
             @classmethod
 
-            def contains(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def contains(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -231,7 +267,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -247,7 +283,11 @@
 
             @classmethod
 
-            def notcontains(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def notcontains(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -255,7 +295,7 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -271,7 +311,7 @@
 
             @classmethod
 
-            def select(cls, field: str) -> Expression:
+            def select(cls, field: str, column_names: List[str]) -> Expression:
 
                 """
 
@@ -279,19 +319,27 @@
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> Any:
 
                     return deep_get(col_val, keys=keys)
 
-                return col(field_name).apply(_apply_fn, return_dtype=DataType.python())
+                return (
+
+                    col(field_name)
+
+                    .apply(_apply_fn, return_dtype=DataType.python())
+
+                    .alias(field)
+
+                )
 
             @classmethod
 
-            def custom(cls, field: str, function_kwargs) -> Expression:
+            def custom(cls, field: str, function_kwargs, column_names: List[str]) -> Expression:
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 function = function_kwargs.get("function")
 
@@ -341,6 +389,8 @@
 
                 filters = []
 
+                column_names = df.column_names
+
                 for metadata_field in filter_conditions:
 
                     metadata_conditions = filter_conditions[metadata_field]
@@ -373,7 +423,11 @@
 
                             metadata_condition_fields.append(
 
-                                cls.FILTER_METHODS[filter_method](metadata_field, value)
+                                cls.FILTER_METHODS[filter_method](
+
+                                    metadata_field, value, column_names
+
+                                )
 
                             )
 
@@ -389,7 +443,9 @@
 
             def select(cls, df: daft.DataFrame, *args) -> daft.DataFrame:
 
-                expressions = [FilterMethods.select(c) for c in args]
+                column_names = df.column_names
+
+                expressions = [FilterMethods.select(c, column_names) for c in args]
 
                 return df.select(*expressions)
 
@@ -442,6 +498,8 @@ class FilterHelper(
 
                 filters = []
 
+                column_names = df.column_names
+
                 for metadata_field in filter_conditions:
 
                     metadata_conditions = filter_conditions[metadata_field]
@@ -474,7 +532,11 @@ class FilterHelper(
 
                             metadata_condition_fields.append(
 
-                                cls.FILTER_METHODS[filter_method](metadata_field, value)
+                                cls.FILTER_METHODS[filter_method](
+
+                                    metadata_field, value, column_names
+
+                                )
 
                             )
 
@@ -490,7 +552,9 @@ class FilterHelper(
 
             def select(cls, df: daft.DataFrame, *args) -> daft.DataFrame:
 
-                expressions = [FilterMethods.select(c) for c in args]
+                column_names = df.column_names
+
+                expressions = [FilterMethods.select(c, column_names) for c in args]
 
                 return df.select(*expressions)
 
@@ -558,6 +622,8 @@ Filter format:
 
                 filters = []
 
+                column_names = df.column_names
+
                 for metadata_field in filter_conditions:
 
                     metadata_conditions = filter_conditions[metadata_field]
@@ -590,7 +656,11 @@ Filter format:
 
                             metadata_condition_fields.append(
 
-                                cls.FILTER_METHODS[filter_method](metadata_field, value)
+                                cls.FILTER_METHODS[filter_method](
+
+                                    metadata_field, value, column_names
+
+                                )
 
                             )
 
@@ -617,7 +687,9 @@ def select(
 
             def select(cls, df: daft.DataFrame, *args) -> daft.DataFrame:
 
-                expressions = [FilterMethods.select(c) for c in args]
+                column_names = df.column_names
+
+                expressions = [FilterMethods.select(c, column_names) for c in args]
 
                 return df.select(*expressions)
 
@@ -668,7 +740,11 @@ class FilterMethods(
 
             @classmethod
 
-            def eq(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def eq(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -676,7 +752,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -686,7 +762,11 @@ class FilterMethods(
 
             @classmethod
 
-            def neq(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def neq(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -694,7 +774,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -704,7 +784,11 @@ class FilterMethods(
 
             @classmethod
 
-            def gt(cls, field: str, value: Union[int, float]) -> Expression:
+            def gt(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -712,7 +796,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -728,7 +812,11 @@ class FilterMethods(
 
             @classmethod
 
-            def gte(cls, field: str, value: Union[int, float]) -> Expression:
+            def gte(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -736,7 +824,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -752,7 +840,11 @@ class FilterMethods(
 
             @classmethod
 
-            def lt(cls, field: str, value: Union[int, float]) -> Expression:
+            def lt(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -760,7 +852,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -776,7 +868,11 @@ class FilterMethods(
 
             @classmethod
 
-            def lte(cls, field: str, value: Union[int, float]) -> Expression:
+            def lte(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -784,7 +880,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -800,7 +896,11 @@ class FilterMethods(
 
             @classmethod
 
-            def isin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+            def isin(
+
+                cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -808,7 +908,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -818,7 +918,11 @@ class FilterMethods(
 
             @classmethod
 
-            def notin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+            def notin(
+
+                cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -826,7 +930,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -836,7 +940,11 @@ class FilterMethods(
 
             @classmethod
 
-            def contains(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def contains(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -844,7 +952,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -860,7 +968,11 @@ class FilterMethods(
 
             @classmethod
 
-            def notcontains(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def notcontains(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -868,7 +980,7 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -884,7 +996,7 @@ class FilterMethods(
 
             @classmethod
 
-            def select(cls, field: str) -> Expression:
+            def select(cls, field: str, column_names: List[str]) -> Expression:
 
                 """
 
@@ -892,19 +1004,27 @@ class FilterMethods(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> Any:
 
                     return deep_get(col_val, keys=keys)
 
-                return col(field_name).apply(_apply_fn, return_dtype=DataType.python())
+                return (
+
+                    col(field_name)
+
+                    .apply(_apply_fn, return_dtype=DataType.python())
+
+                    .alias(field)
+
+                )
 
             @classmethod
 
-            def custom(cls, field: str, function_kwargs) -> Expression:
+            def custom(cls, field: str, function_kwargs, column_names: List[str]) -> Expression:
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 function = function_kwargs.get("function")
 
@@ -926,7 +1046,8 @@ class FilterMethods(
 ```python3
 def contains(
     field: str,
-    value: Union[str, int, float]
+    value: Union[str, int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -935,7 +1056,11 @@ def contains(
 ??? example "View Source"
             @classmethod
 
-            def contains(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def contains(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -943,7 +1068,7 @@ def contains(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -963,16 +1088,17 @@ def contains(
 ```python3
 def custom(
     field: str,
-    function_kwargs
+    function_kwargs,
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
 ??? example "View Source"
             @classmethod
 
-            def custom(cls, field: str, function_kwargs) -> Expression:
+            def custom(cls, field: str, function_kwargs, column_names: List[str]) -> Expression:
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 function = function_kwargs.get("function")
 
@@ -990,7 +1116,8 @@ def custom(
 ```python3
 def eq(
     field: str,
-    value: Union[str, int, float]
+    value: Union[str, int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -999,7 +1126,11 @@ def eq(
 ??? example "View Source"
             @classmethod
 
-            def eq(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def eq(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1007,7 +1138,7 @@ def eq(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1049,7 +1180,8 @@ def filter_methods(
 ```python3
 def gt(
     field: str,
-    value: Union[int, float]
+    value: Union[int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1058,7 +1190,11 @@ def gt(
 ??? example "View Source"
             @classmethod
 
-            def gt(cls, field: str, value: Union[int, float]) -> Expression:
+            def gt(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1066,7 +1202,7 @@ def gt(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1086,7 +1222,8 @@ def gt(
 ```python3
 def gte(
     field: str,
-    value: Union[int, float]
+    value: Union[int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1095,7 +1232,11 @@ def gte(
 ??? example "View Source"
             @classmethod
 
-            def gte(cls, field: str, value: Union[int, float]) -> Expression:
+            def gte(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1103,7 +1244,7 @@ def gte(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1123,7 +1264,8 @@ def gte(
 ```python3
 def isin(
     field: str,
-    values: List[Union[str, int, float]]
+    values: List[Union[str, int, float]],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1132,7 +1274,11 @@ def isin(
 ??? example "View Source"
             @classmethod
 
-            def isin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+            def isin(
+
+                cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1140,7 +1286,7 @@ def isin(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1154,7 +1300,8 @@ def isin(
 ```python3
 def lt(
     field: str,
-    value: Union[int, float]
+    value: Union[int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1163,7 +1310,11 @@ def lt(
 ??? example "View Source"
             @classmethod
 
-            def lt(cls, field: str, value: Union[int, float]) -> Expression:
+            def lt(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1171,7 +1322,7 @@ def lt(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1191,7 +1342,8 @@ def lt(
 ```python3
 def lte(
     field: str,
-    value: Union[int, float]
+    value: Union[int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1200,7 +1352,11 @@ def lte(
 ??? example "View Source"
             @classmethod
 
-            def lte(cls, field: str, value: Union[int, float]) -> Expression:
+            def lte(
+
+                cls, field: str, value: Union[int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1208,7 +1364,7 @@ def lte(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1228,7 +1384,8 @@ def lte(
 ```python3
 def neq(
     field: str,
-    value: Union[str, int, float]
+    value: Union[str, int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1237,7 +1394,11 @@ def neq(
 ??? example "View Source"
             @classmethod
 
-            def neq(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def neq(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1245,7 +1406,7 @@ def neq(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1259,7 +1420,8 @@ def neq(
 ```python3
 def notcontains(
     field: str,
-    value: Union[str, int, float]
+    value: Union[str, int, float],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1268,7 +1430,11 @@ def notcontains(
 ??? example "View Source"
             @classmethod
 
-            def notcontains(cls, field: str, value: Union[str, int, float]) -> Expression:
+            def notcontains(
+
+                cls, field: str, value: Union[str, int, float], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1276,7 +1442,7 @@ def notcontains(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1296,7 +1462,8 @@ def notcontains(
 ```python3
 def notin(
     field: str,
-    values: List[Union[str, int, float]]
+    values: List[Union[str, int, float]],
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1305,7 +1472,11 @@ def notin(
 ??? example "View Source"
             @classmethod
 
-            def notin(cls, field: str, values: List[Union[str, int, float]]) -> Expression:
+            def notin(
+
+                cls, field: str, values: List[Union[str, int, float]], column_names: List[str]
+
+            ) -> Expression:
 
                 """
 
@@ -1313,7 +1484,7 @@ def notin(
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> bool:
 
@@ -1350,7 +1521,8 @@ def print_filter_methods(
 
 ```python3
 def select(
-    field: str
+    field: str,
+    column_names: List[str]
 ) -> daft.expressions.expressions.Expression
 ```
 
@@ -1359,7 +1531,7 @@ select field
 ??? example "View Source"
             @classmethod
 
-            def select(cls, field: str) -> Expression:
+            def select(cls, field: str, column_names: List[str]) -> Expression:
 
                 """
 
@@ -1367,10 +1539,18 @@ select field
 
                 """
 
-                field_name, keys = get_field_name_and_key(field)
+                field_name, keys = get_field_name_and_key(field, column_names)
 
                 def _apply_fn(col_val) -> Any:
 
                     return deep_get(col_val, keys=keys)
 
-                return col(field_name).apply(_apply_fn, return_dtype=DataType.python())
+                return (
+
+                    col(field_name)
+
+                    .apply(_apply_fn, return_dtype=DataType.python())
+
+                    .alias(field)
+
+                )

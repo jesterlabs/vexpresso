@@ -59,9 +59,6 @@ class DaftCollection(Collection):
                 self.daft_df = daft.from_pydict({**_metadata})
             if not lazy:
                 self.daft_df = self.daft_df.collect()
-            self.daft_df = self.daft_df.with_column(
-                "_vexpresso_index", indices(col(self.column_names[0]))
-            )
 
     @lazy(default=True)
     def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
@@ -319,6 +316,7 @@ class DaftCollection(Collection):
     def apply(
         self,
         transform_fn: Transformation,
+        column: DaftCollection,
         *args,
         to: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
@@ -331,16 +329,27 @@ class DaftCollection(Collection):
             transform_fn, datatype=datatype, init_kwargs=init_kwargs, function=function
         )
 
-        if not isinstance(args[0], DaftCollection):
+        if not isinstance(column, DaftCollection):
             raise TypeError(
                 "first args in apply must be a DaftCollection! use `collection['column_name']`"
             )
 
+        collection = self
+
+        args = [column, *args]
+
         _args = []
         for _arg in args:
             if isinstance(_arg, DaftCollection):
-                column = _arg.daft_df.columns[0]
-                _args.append(column)
+                if len(_arg.column_names) > 1:
+                    raise ValueError(
+                        "When passing in a Daft collection into `embed`, they must only have 1 column!"
+                    )
+                column_name = _arg.column_names[0]
+                if column_name not in collection.column_names:
+                    content = _arg.select(column_name).to_dict()[column_name]
+                    collection = collection.add_column(content, column_name)
+                _args.append(col(column_name))
             else:
                 _args.append(_arg)
 
@@ -355,10 +364,9 @@ class DaftCollection(Collection):
         if to is None:
             to = f"tranformed_{_args[0].name()}"
 
-        df = self.daft_df.with_column(
+        return collection.df.with_column(
             to, transform_fn(*_args, **_kwargs), resource_request=resource_request
         )
-        return self.from_daft_df(df)
 
     @lazy(default=True)
     def embed(
@@ -373,28 +381,18 @@ class DaftCollection(Collection):
         **kwargs,
     ) -> DaftCollection:
         collection = self
-
         column_name = None
-        content = None
-
         if isinstance(column, str):
             column_name = column
-        elif isinstance(column, DaftCollection):
-            # single daft
-            column_name = column.column_names[0]
-        else:
-            # passed in content directly
+        elif not isinstance(column, DaftCollection):
+            # raw content
             column_name = f"content_{len(collection.column_names)}"
-            content = column
-
-        if content is None and column_name is None:
-            raise ValueError("column_name or content must be specified!")
+            collection = collection.add_column(column, column_name)
+        else:
+            column_name = column.column_names[0]
 
         if to is None:
             to = f"embeddings_{column_name}"
-
-        if content is not None:
-            collection = self.add_column(content, column_name)
 
         if embedding_fn is None:
             embedding_fn = self.embedding_functions[to]
@@ -405,10 +403,9 @@ class DaftCollection(Collection):
             self.embedding_functions[to], datatype=datatype, init_kwargs=init_kwargs
         )
 
-        args = [self[column_name], *args]
-
         return collection.apply(
             self.embedding_functions[to],
+            collection[column_name],
             *args,
             to=to,
             resource_request=resource_request,

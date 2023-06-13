@@ -235,7 +235,11 @@
 
         
 
-        def get_field_name_and_key(field) -> Tuple[str, str]:
+        def get_field_name_and_key(field: str, column_names: List[str] = []) -> Tuple[str, str]:
+
+            if field in column_names:
+
+                return field, None
 
             field_name = field.split(".")[0]
 
@@ -533,12 +537,17 @@ def get_batch_size(
 
 ```python3
 def get_field_name_and_key(
-    field
+    field: 'str',
+    column_names: 'List[str]' = []
 ) -> 'Tuple[str, str]'
 ```
 
 ??? example "View Source"
-        def get_field_name_and_key(field) -> Tuple[str, str]:
+        def get_field_name_and_key(field: str, column_names: List[str] = []) -> Tuple[str, str]:
+
+            if field in column_names:
+
+                return field, None
 
             field_name = field.split(".")[0]
 
