@@ -13,7 +13,7 @@ from daft import col
 
 from vexpresso.collection import Collection
 from vexpresso.daft.filter import FilterHelper
-from vexpresso.daft.utils import Wrapper, indices, retrieve
+from vexpresso.daft.utils import indices, retrieve
 from vexpresso.embeddings import get_embedding_fn
 from vexpresso.retriever import BaseRetriever, Retriever
 from vexpresso.utils import (
@@ -88,8 +88,8 @@ class DaftCollection(Collection):
         return self.df.select(*expressions)
 
     @property
-    def df(self) -> Wrapper:
-        return Wrapper(self)
+    def df(self) -> daft.DataFrame:
+        return self.daft_df
 
     def __len__(self) -> int:
         return self.daft_df.count_rows()

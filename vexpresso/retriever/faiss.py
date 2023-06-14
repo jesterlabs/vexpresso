@@ -37,7 +37,10 @@ class FaissRetriever(BaseRetriever):
         out = []
         for indices in indices:
             query_output = RetrievalOutput(
-                embeddings[indices], indices, scores=distances, query_embeddings=query_embeddings
+                embeddings[indices],
+                indices,
+                scores=distances,
+                query_embeddings=query_embeddings,
             )
             out.append(query_output)
         return out
