@@ -30,8 +30,11 @@ def retrieve_udf(embedding_col, query_embeddings, retriever, k):
         for retrieval_output in retrieval_outputs:
             indices = retrieval_output.indices
             scores = retrieval_output.scores
-
-            results = {"retrieve_index": None, "retrieve_score": scores[i]}
+            if i >= len(scores):
+                score = -(10**10)
+            else:
+                score = scores[i]
+            results = {"retrieve_index": None, "retrieve_score": score}
             if i in indices:
                 results["retrieve_index"] = i
 
