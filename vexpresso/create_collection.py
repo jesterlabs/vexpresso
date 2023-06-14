@@ -61,6 +61,7 @@ def create(
     collection = collection_class(*args, **kwargs)
     return collection
 
+
 def connect(
     collection_type: str = "daft",
     cluster_address: Optional[str] = None,
@@ -68,7 +69,13 @@ def connect(
     *args,
     **kwargs
 ) -> Collection:
-    return create(collection_type=collection_type, cluster_address=cluster_address, cluster_kwargs=cluster_kwargs, *args, **kwargs)
+    return create(
+        collection_type=collection_type,
+        cluster_address=cluster_address,
+        cluster_kwargs=cluster_kwargs,
+        *args,
+        **kwargs
+    )
 
 
 create_collection = create

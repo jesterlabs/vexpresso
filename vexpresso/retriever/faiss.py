@@ -34,12 +34,13 @@ class FaissRetriever(BaseRetriever):
         query_embeddings = np.array(query_embeddings)
         self._setup_index(embeddings)
         distances, indices = self.index.search(query_embeddings.astype(np.float32), k=k)
+
         out = []
-        for indices in indices:
+        for idx in range(indices.shape[0]):
             query_output = RetrievalOutput(
-                embeddings[indices],
-                indices,
-                scores=distances,
+                embeddings[indices[idx]],
+                indices[idx],
+                scores=distances[idx],
                 query_embeddings=query_embeddings,
             )
             out.append(query_output)
