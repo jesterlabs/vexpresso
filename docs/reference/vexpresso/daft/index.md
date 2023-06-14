@@ -18,7 +18,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'BaseRetriever' = <vexpresso.retriever.np.Retriever object at 0x7f88f788e2b0>,
+    retriever: 'BaseRetriever' = <vexpresso.retriever.np.Retriever object at 0x7f72b258b0a0>,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None,
     lazy: 'bool' = True
@@ -716,6 +716,8 @@ class DaftCollection(
 
             ) -> DaftCollection:
 
+                import ray
+
                 if address is None:
 
                     addy = ray.init(**cluster_kwargs)
@@ -860,6 +862,8 @@ def connect(
                 cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
 
             ) -> DaftCollection:
+
+                import ray
 
                 if address is None:
 

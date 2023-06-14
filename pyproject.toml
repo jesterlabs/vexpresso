@@ -13,7 +13,6 @@ dependencies = [
     'getdaft==0.1.5',
     'pandas',
     'pyarrow',
-    'ray'
 ]
 
 # https://stackoverflow.com/a/73066937

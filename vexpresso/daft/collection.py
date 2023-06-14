@@ -9,7 +9,6 @@ import daft
 # import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
-import ray
 from daft import col
 
 from vexpresso.collection import Collection
@@ -426,6 +425,8 @@ class DaftCollection(Collection):
     def connect(
         cls, address: str = None, cluster_kwargs: Dict[str, Any] = {}, *args, **kwargs
     ) -> DaftCollection:
+        import ray
+
         if address is None:
             addy = ray.init(**cluster_kwargs)
         else:

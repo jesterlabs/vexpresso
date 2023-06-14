@@ -51,3 +51,4 @@ venv
 checkpoints/*
 wandb/*
 mlruns/*
+*/**/save_collection/*
