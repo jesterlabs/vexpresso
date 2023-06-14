@@ -1,9 +1,9 @@
-# Module vexpresso.embeddings.sentence_transformers
+# Module vexpresso.embedding_functions.sentence_transformers
 
 ??? example "View Source"
         from typing import List
 
-        from vexpresso.embeddings.base import EmbeddingFunction
+        from vexpresso.embedding_functions.base import EmbeddingFunction
 
         DEFAULT_MODEL = "sentence-transformers/all-mpnet-base-v2"
 
@@ -89,4 +89,4 @@ class SentenceTransformerEmbeddingFunction(
 
 #### Ancestors (in MRO)
 
-* vexpresso.embeddings.base.EmbeddingFunction
+* vexpresso.embedding_functions.base.EmbeddingFunction

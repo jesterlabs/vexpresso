@@ -1,4 +1,4 @@
-# Module vexpresso.embeddings.base
+# Module vexpresso.embedding_functions.base
 
 ??? example "View Source"
         import abc
@@ -122,5 +122,5 @@ class EmbeddingFunction(
 
 #### Descendants
 
-* vexpresso.embeddings.clip.ClipEmbeddingsFunction
-* vexpresso.embeddings.sentence_transformers.SentenceTransformerEmbeddingFunction
+* vexpresso.embedding_functions.clip.ClipEmbeddingsFunction
+* vexpresso.embedding_functions.sentence_transformers.SentenceTransformerEmbeddingFunction

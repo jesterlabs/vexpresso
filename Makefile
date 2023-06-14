@@ -71,6 +71,13 @@ doc:
 serve-docs:
 	mkdocs serve
 
-commit: install doc
+commit: install test doc
 	git add .
 	git commit -a
+
+test:
+	python -m pytest --cov=vexpresso/ --cov-report html:tests/cov-report tests/
+
+test-html:
+	test
+	$(BROWSER) tests/cov-report/index.html

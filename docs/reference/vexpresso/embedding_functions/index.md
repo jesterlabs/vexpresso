@@ -1,11 +1,11 @@
-# Module vexpresso.embeddings
+# Module vexpresso.embedding_functions
 
 ??? example "View Source"
-        from vexpresso.embeddings.base import EmbeddingFunction, get_embedding_fn
+        from vexpresso.embedding_functions.base import EmbeddingFunction, get_embedding_fn
 
-        from vexpresso.embeddings.clip import ClipEmbeddingsFunction
+        from vexpresso.embedding_functions.clip import ClipEmbeddingsFunction
 
-        from vexpresso.embeddings.sentence_transformers import (
+        from vexpresso.embedding_functions.sentence_transformers import (
 
             SentenceTransformerEmbeddingFunction,
 
@@ -25,9 +25,9 @@
 
 ## Sub-modules
 
-* [vexpresso.embeddings.base](base/)
-* [vexpresso.embeddings.clip](clip/)
-* [vexpresso.embeddings.sentence_transformers](sentence_transformers/)
+* [vexpresso.embedding_functions.base](base/)
+* [vexpresso.embedding_functions.clip](clip/)
+* [vexpresso.embedding_functions.sentence_transformers](sentence_transformers/)
 
 ## Functions
 
@@ -130,7 +130,7 @@ class ClipEmbeddingsFunction(
 
 #### Ancestors (in MRO)
 
-* vexpresso.embeddings.EmbeddingFunction
+* vexpresso.embedding_functions.EmbeddingFunction
 
 ### EmbeddingFunction
 
@@ -159,8 +159,8 @@ class EmbeddingFunction(
 
 #### Descendants
 
-* vexpresso.embeddings.ClipEmbeddingsFunction
-* vexpresso.embeddings.SentenceTransformerEmbeddingFunction
+* vexpresso.embedding_functions.ClipEmbeddingsFunction
+* vexpresso.embedding_functions.SentenceTransformerEmbeddingFunction
 
 ### SentenceTransformerEmbeddingFunction
 
@@ -206,4 +206,4 @@ class SentenceTransformerEmbeddingFunction(
 
 #### Ancestors (in MRO)
 
-* vexpresso.embeddings.EmbeddingFunction
+* vexpresso.embedding_functions.EmbeddingFunction

@@ -4,7 +4,7 @@ from typing import Any, Iterable, List, Optional
 import daft
 from daft import col
 
-from vexpresso.retriever import Retriever
+from vexpresso.retrievers import Retriever
 from vexpresso.utils import DataType, ResourceRequest, get_batch_size
 
 
@@ -51,6 +51,7 @@ def retrieve(
     retriever: Retriever,
     k: int = None,
     sort: bool = True,
+    show_scores: bool = False,
     score_column_name: Optional[str] = None,
     resource_request: ResourceRequest = ResourceRequest(),
 ) -> List[daft.DataFrame]:
@@ -90,6 +91,9 @@ def retrieve(
         )
         if sort:
             _df = _df.sort(col(score_column_name), desc=True)
+
+        if not show_scores:
+            _df = _df.exclude(score_column_name)
 
         dfs.append(_df)
     return dfs

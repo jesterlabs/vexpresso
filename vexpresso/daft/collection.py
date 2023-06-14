@@ -14,8 +14,8 @@ from daft import col
 from vexpresso.collection import Collection
 from vexpresso.daft.filter import FilterHelper
 from vexpresso.daft.utils import indices, retrieve
-from vexpresso.embeddings import get_embedding_fn
-from vexpresso.retriever import BaseRetriever, Retriever
+from vexpresso.embedding_functions import get_embedding_fn
+from vexpresso.retrievers import BaseRetriever, Retriever
 from vexpresso.utils import (
     DataType,
     Document,
@@ -86,6 +86,10 @@ class DaftCollection(Collection):
             )
         expressions = [col(c).alias(t) for c, t in zip(columns, to)]
         return self.df.select(*expressions)
+
+    @lazy(default=True)
+    def agg(self, *args, **kwargs) -> DaftCollection:
+        return self.from_df(self.daft_df.agg(*args, **kwargs))
 
     @property
     def df(self) -> daft.DataFrame:
@@ -213,6 +217,7 @@ class DaftCollection(Collection):
         k: int = None,
         sort: bool = True,
         embedding_fn: Optional[Transformation] = None,
+        show_scores: bool = False,
         score_column_name: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
         retriever: Optional[BaseRetriever] = None,
@@ -230,6 +235,7 @@ class DaftCollection(Collection):
             k=k,
             sort=sort,
             embedding_fn=embedding_fn,
+            show_scores=show_scores,
             score_column_name=score_column_name,
             resource_request=resource_request,
             retriever=retriever,
@@ -247,6 +253,7 @@ class DaftCollection(Collection):
         k: int = None,
         sort: bool = True,
         embedding_fn: Optional[Transformation] = None,
+        show_scores: bool = False,
         score_column_name: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
         retriever: Optional[BaseRetriever] = None,
@@ -286,6 +293,7 @@ class DaftCollection(Collection):
             retriever,
             k,
             sort,
+            show_scores,
             score_column_name,
             resource_request,
         )

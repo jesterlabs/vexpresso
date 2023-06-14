@@ -1,4 +1,4 @@
-from vexpresso.embeddings.base import EmbeddingFunction
+from vexpresso.embedding_functions.base import EmbeddingFunction
 
 DEFAULT_MODEL = "openai/clip-vit-base-patch32"
 

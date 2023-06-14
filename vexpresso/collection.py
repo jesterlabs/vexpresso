@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from vexpresso.utils import HFHubHelper, Transformation
+from vexpresso.retrievers import BaseRetriever
+from vexpresso.utils import HFHubHelper, ResourceRequest, Transformation
 
 
 class Collection(metaclass=abc.ABCMeta):
@@ -51,13 +52,16 @@ class Collection(metaclass=abc.ABCMeta):
     def query(
         self,
         column: str,
-        query: Any = None,
-        query_embeddings: Any = None,
+        query: List[Any] = None,
+        query_embedding: List[Any] = None,
         filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
-        k=None,
-        sort=True,
+        k: int = None,
+        sort: bool = True,
         embedding_fn: Optional[Transformation] = None,
+        show_scores: bool = False,
         score_column_name: Optional[str] = None,
+        resource_request: ResourceRequest = ResourceRequest(),
+        retriever: Optional[BaseRetriever] = None,
         *args,
         **kwargs,
     ) -> Collection:

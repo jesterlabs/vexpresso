@@ -1,11 +1,11 @@
-# Module vexpresso.retriever.faiss
+# Module vexpresso.retrievers.faiss
 
 ??? example "View Source"
         from typing import List
 
         import numpy as np
 
-        from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
+        from vexpresso.retrievers.base import BaseRetriever, RetrievalOutput
 
         
 
@@ -51,6 +51,10 @@
 
             ) -> List[RetrievalOutput]:
 
+                if not isinstance(embeddings, np.ndarray):
+
+                    embeddings = np.array(embeddings)
+
                 query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
@@ -59,11 +63,17 @@
 
                 out = []
 
-                for indices in indices:
+                for idx in range(indices.shape[0]):
 
                     query_output = RetrievalOutput(
 
-                        embeddings[indices], indices, query_embeddings, scores=distances
+                        embeddings[indices[idx]],
+
+                        indices[idx],
+
+                        scores=distances[idx],
+
+                        query_embeddings=query_embeddings,
 
                     )
 
@@ -124,6 +134,10 @@ class FaissRetriever(
 
             ) -> List[RetrievalOutput]:
 
+                if not isinstance(embeddings, np.ndarray):
+
+                    embeddings = np.array(embeddings)
+
                 query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
@@ -132,11 +146,17 @@ class FaissRetriever(
 
                 out = []
 
-                for indices in indices:
+                for idx in range(indices.shape[0]):
 
                     query_output = RetrievalOutput(
 
-                        embeddings[indices], indices, query_embeddings, scores=distances
+                        embeddings[indices[idx]],
+
+                        indices[idx],
+
+                        scores=distances[idx],
+
+                        query_embeddings=query_embeddings,
 
                     )
 
@@ -148,7 +168,7 @@ class FaissRetriever(
 
 #### Ancestors (in MRO)
 
-* vexpresso.retriever.base.BaseRetriever
+* vexpresso.retrievers.base.BaseRetriever
 
 #### Class variables
 
@@ -167,7 +187,7 @@ def retrieve(
     query_embeddings: numpy.ndarray,
     embeddings: numpy.ndarray,
     k: int = 4
-) -> List[vexpresso.retriever.base.RetrievalOutput]
+) -> List[vexpresso.retrievers.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids
@@ -198,6 +218,10 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
 
             ) -> List[RetrievalOutput]:
 
+                if not isinstance(embeddings, np.ndarray):
+
+                    embeddings = np.array(embeddings)
+
                 query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
@@ -206,11 +230,17 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
 
                 out = []
 
-                for indices in indices:
+                for idx in range(indices.shape[0]):
 
                     query_output = RetrievalOutput(
 
-                        embeddings[indices], indices, query_embeddings, scores=distances
+                        embeddings[indices[idx]],
+
+                        indices[idx],
+
+                        scores=distances[idx],
+
+                        query_embeddings=query_embeddings,
 
                     )
 

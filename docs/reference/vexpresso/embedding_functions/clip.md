@@ -1,7 +1,7 @@
-# Module vexpresso.embeddings.clip
+# Module vexpresso.embedding_functions.clip
 
 ??? example "View Source"
-        from vexpresso.embeddings.base import EmbeddingFunction
+        from vexpresso.embedding_functions.base import EmbeddingFunction
 
         DEFAULT_MODEL = "openai/clip-vit-base-patch32"
 
@@ -116,4 +116,4 @@ class ClipEmbeddingsFunction(
 
 #### Ancestors (in MRO)
 
-* vexpresso.embeddings.base.EmbeddingFunction
+* vexpresso.embedding_functions.base.EmbeddingFunction

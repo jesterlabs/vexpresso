@@ -1,11 +1,11 @@
-# Module vexpresso.retriever.base
+# Module vexpresso.retrievers.base
 
 ??? example "View Source"
         import abc
 
-        from dataclasses import asdict, dataclass
+        from dataclasses import dataclass
 
-        from typing import Any, Dict, Iterable, List, Optional, Union
+        from typing import Any, Iterable, List, Optional, Union
 
         import numpy as np
 
@@ -22,10 +22,6 @@
             scores: Union[np.ndarray, Iterable[float]]
 
             query_embeddings: Optional[Any] = None
-
-            def dict(self) -> Dict[str, Any]:
-
-                return {k: str(v) for k, v in asdict(self).items()}
 
         
 
@@ -110,8 +106,8 @@ class BaseRetriever(
 
 #### Descendants
 
-* vexpresso.retriever.faiss.FaissRetriever
-* vexpresso.retriever.np.Retriever
+* vexpresso.retrievers.faiss.FaissRetriever
+* vexpresso.retrievers.np.Retriever
 
 #### Class variables
 
@@ -131,7 +127,7 @@ def retrieve(
     embeddings: List[Any],
     *args,
     **kwargs
-) -> Union[List[vexpresso.retriever.base.RetrievalOutput], vexpresso.retriever.base.RetrievalOutput]
+) -> Union[List[vexpresso.retrievers.base.RetrievalOutput], vexpresso.retrievers.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids
@@ -204,10 +200,6 @@ RetrievalOutput(embeddings: Any, indices: Union[numpy.ndarray, Iterable[int]], s
 
             query_embeddings: Optional[Any] = None
 
-            def dict(self) -> Dict[str, Any]:
-
-                return {k: str(v) for k, v in asdict(self).items()}
-
 ------
 
 #### Class variables
@@ -215,19 +207,3 @@ RetrievalOutput(embeddings: Any, indices: Union[numpy.ndarray, Iterable[int]], s
 ```python3
 query_embeddings
 ```
-
-#### Methods
-
-    
-#### dict
-
-```python3
-def dict(
-    self
-) -> Dict[str, Any]
-```
-
-??? example "View Source"
-            def dict(self) -> Dict[str, Any]:
-
-                return {k: str(v) for k, v in asdict(self).items()}

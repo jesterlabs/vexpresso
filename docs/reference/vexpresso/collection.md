@@ -13,7 +13,9 @@
 
         import pandas as pd
 
-        from vexpresso.utils import HFHubHelper, Transformation
+        from vexpresso.retrievers import BaseRetriever
+
+        from vexpresso.utils import HFHubHelper, ResourceRequest, Transformation
 
         
 
@@ -83,19 +85,25 @@
 
                 column: str,
 
-                query: Any = None,
+                query: List[Any] = None,
 
-                query_embeddings: Any = None,
+                query_embedding: List[Any] = None,
 
                 filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
 
-                k=None,
+                k: int = None,
 
-                sort=True,
+                sort: bool = True,
 
                 embedding_fn: Optional[Transformation] = None,
 
+                show_scores: bool = False,
+
                 score_column_name: Optional[str] = None,
+
+                resource_request: ResourceRequest = ResourceRequest(),
+
+                retriever: Optional[BaseRetriever] = None,
 
                 *args,
 
@@ -402,19 +410,25 @@ class Collection(
 
                 column: str,
 
-                query: Any = None,
+                query: List[Any] = None,
 
-                query_embeddings: Any = None,
+                query_embedding: List[Any] = None,
 
                 filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
 
-                k=None,
+                k: int = None,
 
-                sort=True,
+                sort: bool = True,
 
                 embedding_fn: Optional[Transformation] = None,
 
+                show_scores: bool = False,
+
                 score_column_name: Optional[str] = None,
+
+                resource_request: ResourceRequest = ResourceRequest(),
+
+                retriever: Optional[BaseRetriever] = None,
 
                 *args,
 
@@ -891,13 +905,16 @@ Filter method, filters using conditions based on metadata
 def query(
     self,
     column: 'str',
-    query: 'Any' = None,
-    query_embeddings: 'Any' = None,
+    query: 'List[Any]' = None,
+    query_embedding: 'List[Any]' = None,
     filter_conditions: 'Optional[Dict[str, Dict[str, str]]]' = None,
-    k=None,
-    sort=True,
+    k: 'int' = None,
+    sort: 'bool' = True,
     embedding_fn: 'Optional[Transformation]' = None,
+    show_scores: 'bool' = False,
     score_column_name: 'Optional[str]' = None,
+    resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
+    retriever: 'Optional[BaseRetriever]' = None,
     *args,
     **kwargs
 ) -> 'Collection'
@@ -922,19 +939,25 @@ Query method, takes in queries or query embeddings and retrieves nearest content
 
                 column: str,
 
-                query: Any = None,
+                query: List[Any] = None,
 
-                query_embeddings: Any = None,
+                query_embedding: List[Any] = None,
 
                 filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
 
-                k=None,
+                k: int = None,
 
-                sort=True,
+                sort: bool = True,
 
                 embedding_fn: Optional[Transformation] = None,
 
+                show_scores: bool = False,
+
                 score_column_name: Optional[str] = None,
+
+                resource_request: ResourceRequest = ResourceRequest(),
+
+                retriever: Optional[BaseRetriever] = None,
 
                 *args,
 

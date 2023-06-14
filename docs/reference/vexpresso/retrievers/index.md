@@ -1,11 +1,11 @@
-# Module vexpresso.retriever
+# Module vexpresso.retrievers
 
 ??? example "View Source"
-        from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
+        from vexpresso.retrievers.base import BaseRetriever, RetrievalOutput
 
-        from vexpresso.retriever.faiss import FaissRetriever
+        from vexpresso.retrievers.faiss import FaissRetriever
 
-        from vexpresso.retriever.np import Retriever
+        from vexpresso.retrievers.np import Retriever
 
         __all__ = [
 
@@ -21,9 +21,9 @@
 
 ## Sub-modules
 
-* [vexpresso.retriever.base](base/)
-* [vexpresso.retriever.faiss](faiss/)
-* [vexpresso.retriever.np](np/)
+* [vexpresso.retrievers.base](base/)
+* [vexpresso.retrievers.faiss](faiss/)
+* [vexpresso.retrievers.np](np/)
 
 ## Classes
 
@@ -74,8 +74,8 @@ class BaseRetriever(
 
 #### Descendants
 
-* vexpresso.retriever.FaissRetriever
-* vexpresso.retriever.Retriever
+* vexpresso.retrievers.FaissRetriever
+* vexpresso.retrievers.Retriever
 
 #### Class variables
 
@@ -95,7 +95,7 @@ def retrieve(
     embeddings: List[Any],
     *args,
     **kwargs
-) -> Union[List[vexpresso.retriever.base.RetrievalOutput], vexpresso.retriever.base.RetrievalOutput]
+) -> Union[List[vexpresso.retrievers.base.RetrievalOutput], vexpresso.retrievers.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids
@@ -193,6 +193,10 @@ class FaissRetriever(
 
             ) -> List[RetrievalOutput]:
 
+                if not isinstance(embeddings, np.ndarray):
+
+                    embeddings = np.array(embeddings)
+
                 query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
@@ -201,11 +205,17 @@ class FaissRetriever(
 
                 out = []
 
-                for indices in indices:
+                for idx in range(indices.shape[0]):
 
                     query_output = RetrievalOutput(
 
-                        embeddings[indices], indices, query_embeddings, scores=distances
+                        embeddings[indices[idx]],
+
+                        indices[idx],
+
+                        scores=distances[idx],
+
+                        query_embeddings=query_embeddings,
 
                     )
 
@@ -217,7 +227,7 @@ class FaissRetriever(
 
 #### Ancestors (in MRO)
 
-* vexpresso.retriever.BaseRetriever
+* vexpresso.retrievers.BaseRetriever
 
 #### Class variables
 
@@ -236,7 +246,7 @@ def retrieve(
     query_embeddings: numpy.ndarray,
     embeddings: numpy.ndarray,
     k: int = 4
-) -> List[vexpresso.retriever.base.RetrievalOutput]
+) -> List[vexpresso.retrievers.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids
@@ -267,6 +277,10 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
 
             ) -> List[RetrievalOutput]:
 
+                if not isinstance(embeddings, np.ndarray):
+
+                    embeddings = np.array(embeddings)
+
                 query_embeddings = np.array(query_embeddings)
 
                 self._setup_index(embeddings)
@@ -275,11 +289,17 @@ Queries embeddings with query embedding vector and returns nearest embeddings an
 
                 out = []
 
-                for indices in indices:
+                for idx in range(indices.shape[0]):
 
                     query_output = RetrievalOutput(
 
-                        embeddings[indices], indices, query_embeddings, scores=distances
+                        embeddings[indices[idx]],
+
+                        indices[idx],
+
+                        scores=distances[idx],
+
+                        query_embeddings=query_embeddings,
 
                     )
 
@@ -313,10 +333,6 @@ RetrievalOutput(embeddings: Any, indices: Union[numpy.ndarray, Iterable[int]], s
 
             query_embeddings: Optional[Any] = None
 
-            def dict(self) -> Dict[str, Any]:
-
-                return {k: str(v) for k, v in asdict(self).items()}
-
 ------
 
 #### Class variables
@@ -324,22 +340,6 @@ RetrievalOutput(embeddings: Any, indices: Union[numpy.ndarray, Iterable[int]], s
 ```python3
 query_embeddings
 ```
-
-#### Methods
-
-    
-#### dict
-
-```python3
-def dict(
-    self
-) -> Dict[str, Any]
-```
-
-??? example "View Source"
-            def dict(self) -> Dict[str, Any]:
-
-                return {k: str(v) for k, v in asdict(self).items()}
 
 ### Retriever
 
@@ -444,7 +444,7 @@ class Retriever(
 
 #### Ancestors (in MRO)
 
-* vexpresso.retriever.BaseRetriever
+* vexpresso.retrievers.BaseRetriever
 
 #### Class variables
 
@@ -463,7 +463,7 @@ def retrieve(
     query_embeddings: numpy.ndarray,
     embeddings: List[Any],
     k: int = 4
-) -> List[vexpresso.retriever.base.RetrievalOutput]
+) -> List[vexpresso.retrievers.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids

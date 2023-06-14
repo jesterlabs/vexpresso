@@ -1,6 +1,6 @@
 import abc
-from dataclasses import asdict, dataclass
-from typing import Any, Dict, Iterable, List, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -11,9 +11,6 @@ class RetrievalOutput:
     indices: Union[np.ndarray, Iterable[int]]
     scores: Union[np.ndarray, Iterable[float]]
     query_embeddings: Optional[Any] = None
-
-    def dict(self) -> Dict[str, Any]:
-        return {k: str(v) for k, v in asdict(self).items()}
 
 
 class BaseRetriever(metaclass=abc.ABCMeta):

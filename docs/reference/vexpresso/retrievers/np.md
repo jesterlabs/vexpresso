@@ -1,11 +1,11 @@
-# Module vexpresso.retriever.np
+# Module vexpresso.retrievers.np
 
 ??? example "View Source"
         from typing import Any, List
 
         import numpy as np
 
-        from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
+        from vexpresso.retrievers.base import BaseRetriever, RetrievalOutput
 
         
 
@@ -25,7 +25,7 @@
 
                 return vector / np.linalg.norm(vector)
 
-            return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis]
+            return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis] + 1e-4
 
         
 
@@ -226,7 +226,7 @@ def get_norm_vector(
 
                 return vector / np.linalg.norm(vector)
 
-            return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis]
+            return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis] + 1e-4
 
     
 ### get_similarity_fn
@@ -373,7 +373,7 @@ class Retriever(
 
 #### Ancestors (in MRO)
 
-* vexpresso.retriever.base.BaseRetriever
+* vexpresso.retrievers.base.BaseRetriever
 
 #### Class variables
 
@@ -392,7 +392,7 @@ def retrieve(
     query_embeddings: numpy.ndarray,
     embeddings: List[Any],
     k: int = 4
-) -> List[vexpresso.retriever.base.RetrievalOutput]
+) -> List[vexpresso.retrievers.base.RetrievalOutput]
 ```
 
 Queries embeddings with query embedding vector and returns nearest embeddings and their corresponding ids

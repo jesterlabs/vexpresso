@@ -1,6 +1,6 @@
 from typing import List
 
-from vexpresso.embeddings.base import EmbeddingFunction
+from vexpresso.embedding_functions.base import EmbeddingFunction
 
 DEFAULT_MODEL = "sentence-transformers/all-mpnet-base-v2"
 

@@ -9,7 +9,7 @@
 
         from daft import col
 
-        from vexpresso.retriever import Retriever
+        from vexpresso.retrievers import Retriever
 
         from vexpresso.utils import DataType, ResourceRequest, get_batch_size
 
@@ -55,7 +55,15 @@
 
                     scores = retrieval_output.scores
 
-                    results = {"retrieve_index": None, "retrieve_score": scores[i]}
+                    if i >= len(scores):
+
+                        score = -(10**10)
+
+                    else:
+
+                        score = scores[i]
+
+                    results = {"retrieve_index": None, "retrieve_score": score}
 
                     if i in indices:
 
@@ -84,6 +92,8 @@
             k: int = None,
 
             sort: bool = True,
+
+            show_scores: bool = False,
 
             score_column_name: Optional[str] = None,
 
@@ -159,6 +169,10 @@
 
                     _df = _df.sort(col(score_column_name), desc=True)
 
+                if not show_scores:
+
+                    _df = _df.exclude(score_column_name)
+
                 dfs.append(_df)
 
             return dfs
@@ -170,6 +184,10 @@
             def __init__(self, collection):
 
                 self.collection = collection
+
+            def __repr__(self) -> str:
+
+                return self.daft_df.__repr__()
 
             def __getattr__(self, name):
 
@@ -222,9 +240,10 @@ def retrieve(
     df: daft.dataframe.dataframe.DataFrame,
     embedding_column_name: str,
     query_embeddings: Iterable[Any],
-    retriever: vexpresso.retriever.np.Retriever,
+    retriever: vexpresso.retrievers.np.Retriever,
     k: int = None,
     sort: bool = True,
+    show_scores: bool = False,
     score_column_name: Optional[str] = None,
     resource_request: daft.resource_request.ResourceRequest = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None)
 ) -> List[daft.dataframe.dataframe.DataFrame]
@@ -246,6 +265,8 @@ def retrieve(
             k: int = None,
 
             sort: bool = True,
+
+            show_scores: bool = False,
 
             score_column_name: Optional[str] = None,
 
@@ -321,6 +342,10 @@ def retrieve(
 
                     _df = _df.sort(col(score_column_name), desc=True)
 
+                if not show_scores:
+
+                    _df = _df.exclude(score_column_name)
+
                 dfs.append(_df)
 
             return dfs
@@ -341,6 +366,10 @@ class Wrapper(
             def __init__(self, collection):
 
                 self.collection = collection
+
+            def __repr__(self) -> str:
+
+                return self.daft_df.__repr__()
 
             def __getattr__(self, name):
 

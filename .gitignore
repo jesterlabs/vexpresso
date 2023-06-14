@@ -52,3 +52,4 @@ checkpoints/*
 wandb/*
 mlruns/*
 */**/save_collection/*
+*/**/cov-report/*

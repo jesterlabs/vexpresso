@@ -2,7 +2,7 @@ from typing import Any, List
 
 import numpy as np
 
-from vexpresso.retriever.base import BaseRetriever, RetrievalOutput
+from vexpresso.retrievers.base import BaseRetriever, RetrievalOutput
 
 
 def is_batched(arr: np.ndarray) -> bool:
