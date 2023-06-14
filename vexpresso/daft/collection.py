@@ -13,7 +13,7 @@ from daft import col
 
 from vexpresso.collection import Collection
 from vexpresso.daft.filter import FilterHelper
-from vexpresso.daft.utils import Wrapper, add_column, indices, retrieve
+from vexpresso.daft.utils import Wrapper, indices, retrieve
 from vexpresso.embeddings import get_embedding_fn
 from vexpresso.retriever import BaseRetriever, Retriever
 from vexpresso.utils import (
@@ -31,6 +31,7 @@ class DaftCollection(Collection):
         self,
         data: Optional[Union[str, pd.DataFrame, Dict[str, Any]]] = None,
         retriever: BaseRetriever = Retriever(),
+        embeddings: Optional[List[Any]] = None,
         embedding_functions: Dict[str, Any] = {},
         daft_df: Optional[daft.DataFrame] = None,
         lazy: bool = True,
@@ -56,8 +57,13 @@ class DaftCollection(Collection):
                 self.daft_df = daft.from_pylist(_metadata)
             else:
                 self.daft_df = daft.from_pydict({**_metadata})
+            if embeddings is not None:
+                self.daft_df = self.add_column("embeddings", embeddings).daft_df
             if not lazy:
                 self.daft_df = self.daft_df.collect()
+
+    def __repr__(self) -> str:
+        return self.daft_df.__repr__()
 
     @lazy(default=True)
     def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
@@ -135,21 +141,22 @@ class DaftCollection(Collection):
         )
 
     @lazy(default=True)
-    def add_column(self, column: List[Any], name: str = None) -> DaftCollection:
-        if name is None:
-            num_columns = len(self.daft_df.column_names)
-            name = f"column_{num_columns}"
-
+    def add_column(self, name: str, column: List[Any]) -> DaftCollection:
         df = self.daft_df.with_column(
-            name, add_column(col(self.column_names[0]), column)
+            "_vexpresso_index", indices(col(self.column_names[0]))
         )
+        second_df = daft.from_pydict(
+            {name: column, "_vexpresso_index": list(range(len(self)))}
+        )
+
+        df = df.join(second_df, on="_vexpresso_index").exclude("_vexpresso_index")
         return self.from_daft_df(df)
 
     def collect(self, in_place: bool = False):
         if in_place:
-            self.daft_df = self.daft_df.collect()
+            self.daft_df = self.daft_df.collect(num_preview_rows=None)
             return self
-        return self.from_daft_df(self.daft_df.collect())
+        return self.from_daft_df(self.daft_df.collect(num_preview_rows=None))
 
     def execute(self) -> DaftCollection:
         return self.collect()
@@ -168,7 +175,7 @@ class DaftCollection(Collection):
 
     def show(self, num_rows: Optional[int] = None):
         if num_rows is None:
-            self.daft_df.show(self.__len__())
+            return self.daft_df.show(self.__len__())
         return self.daft_df.show(num_rows)
 
     @lazy(default=True)
@@ -218,7 +225,7 @@ class DaftCollection(Collection):
         return self.batch_query(
             column=column,
             queries=query,
-            query_embeddings=query_embedding,
+            query_embeddings=[query_embedding],
             filter_conditions=filter_conditions,
             k=k,
             sort=sort,
@@ -347,7 +354,7 @@ class DaftCollection(Collection):
                 column_name = _arg.column_names[0]
                 if column_name not in collection.column_names:
                     content = _arg.select(column_name).to_dict()[column_name]
-                    collection = collection.add_column(content, column_name)
+                    collection = collection.add_column(column_name, content)
                 _args.append(col(column_name))
             else:
                 _args.append(_arg)
@@ -386,7 +393,7 @@ class DaftCollection(Collection):
         elif not isinstance(column, DaftCollection):
             # raw content
             column_name = f"content_{len(collection.column_names)}"
-            collection = collection.add_column(column, column_name)
+            collection = collection.add_column(column_name, column)
         else:
             column_name = column.column_names[0]
 

@@ -14,7 +14,7 @@ def is_batched(arr: np.ndarray) -> bool:
 def get_norm_vector(vector: np.ndarray) -> np.array:
     if len(vector.shape) == 1:
         return vector / np.linalg.norm(vector)
-    return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis]
+    return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis] + 1e-4
 
 
 def cosine_similarity(query_vector, vectors):

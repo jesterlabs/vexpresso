@@ -29,6 +29,8 @@ class FaissRetriever(BaseRetriever):
         embeddings: np.ndarray,
         k: int = 4,
     ) -> List[RetrievalOutput]:
+        if not isinstance(embeddings, np.ndarray):
+            embeddings = np.array(embeddings)
         query_embeddings = np.array(query_embeddings)
         self._setup_index(embeddings)
         distances, indices = self.index.search(query_embeddings.astype(np.float32), k=k)

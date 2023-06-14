@@ -96,6 +96,9 @@ class Wrapper:
     def __init__(self, collection):
         self.collection = collection
 
+    def __repr__(self) -> str:
+        return self.daft_df.__repr__()
+
     def __getattr__(self, name):
         if hasattr(self.collection.daft_df, name):
             func = getattr(self.collection.daft_df, name)
