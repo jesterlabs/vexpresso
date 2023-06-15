@@ -21,6 +21,7 @@ def _should_load(
 
 
 def create(
+    *args,
     collection_type: str = "daft",
     directory_or_repo_id: Optional[str] = None,
     token: Optional[str] = None,
@@ -32,8 +33,7 @@ def create(
     backend: str = "python",
     cluster_address: Optional[str] = None,
     cluster_kwargs: Dict[str, Any] = {},
-    *args,
-    **kwargs
+    **kwargs,
 ) -> Collection:
     BACKEND_SET = {"python", "ray"}
 
@@ -56,7 +56,7 @@ def create(
             repo_name=repo_name,
             hub_download_kwargs=hub_download_kwargs,
             *args,
-            **kwargs
+            **kwargs,
         )
     collection = collection_class(*args, **kwargs)
     return collection
@@ -67,14 +67,14 @@ def connect(
     cluster_address: Optional[str] = None,
     cluster_kwargs: Dict[str, Any] = {},
     *args,
-    **kwargs
+    **kwargs,
 ) -> Collection:
     return create(
         collection_type=collection_type,
         cluster_address=cluster_address,
         cluster_kwargs=cluster_kwargs,
         *args,
-        **kwargs
+        **kwargs,
     )
 
 
