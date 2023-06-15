@@ -54,12 +54,6 @@ lint: ## check style with flake8
 install: clean lint
 	python -m pip install . --upgrade
 
-doc: ## generate Sphinx HTML documentation, including API docs
-	sphinx-apidoc -o docs/ vexpresso
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
-	$(BROWSER) docs/_build/html/index.html
-
 doc:
 	rm -r docs/reference/
 	pdocs as_markdown vexpresso -o docs/reference
@@ -78,6 +72,5 @@ commit: install test doc
 test:
 	python -m pytest --cov=vexpresso/ --cov-report html:tests/cov-report tests/
 
-test-html:
-	test
+test-html: test
 	$(BROWSER) tests/cov-report/index.html

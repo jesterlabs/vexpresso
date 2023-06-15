@@ -20,19 +20,19 @@ dependencies = [
 # modern-python-cli = "modern_python_package.cli:main"
 
 # https://github.com/PyCQA/flake8/issues/234
-[tool.flake8]
-max-line-length = 100
+# [tool.flake8]
+# max-line-length = 100
 
-[tool.pylint]
-good-names=["rv"]
+# [tool.pylint]
+# good-names=["rv"]
 
-# # https://docs.pytest.org/en/7.1.x/reference/customize.html#pyproject-toml
-# [tool.pytest.ini_options]
-# addopts = "--cov=vexpresso --junitxml=coverage.xml --cov-fail-under=80"
+# # # https://docs.pytest.org/en/7.1.x/reference/customize.html#pyproject-toml
+# # [tool.pytest.ini_options]
+# # addopts = "--cov=vexpresso --junitxml=coverage.xml --cov-fail-under=80"
 
-# https://github.com/microsoft/pyright/blob/main/docs/configuration.md#sample-pyprojecttoml-file
-[tool.pyright]
-exclude = [
-    "test/**"
-]
+# # https://github.com/microsoft/pyright/blob/main/docs/configuration.md#sample-pyprojecttoml-file
+# [tool.pyright]
+# exclude = [
+#     "test/**"
+# ]
 

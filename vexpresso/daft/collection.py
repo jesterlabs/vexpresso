@@ -5,15 +5,13 @@ import os
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import daft
-
-# import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 from daft import col
 
 from vexpresso.collection import Collection
 from vexpresso.daft.filter import FilterHelper
-from vexpresso.daft.utils import indices, retrieve
+from vexpresso.daft.utils import Wrapper, indices, retrieve
 from vexpresso.embedding_functions import get_embedding_fn
 from vexpresso.retrievers import BaseRetriever, Retriever
 from vexpresso.utils import (
@@ -65,6 +63,10 @@ class DaftCollection(Collection):
     def __repr__(self) -> str:
         return self.daft_df.__repr__()
 
+    @property
+    def on_df(self) -> Wrapper:
+        return Wrapper(self)
+
     @lazy(default=True)
     def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
         # for some reason this is super slow
@@ -72,7 +74,9 @@ class DaftCollection(Collection):
             idx = [idx]
 
         collection = (
-            self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+            self.on_df.with_column(
+                "_vexpresso_index", indices(col(self.column_names[0]))
+            )
             .filter({"_vexpresso_index": {"isin": idx}})
             .exclude("_vexpresso_index")
         )
@@ -85,7 +89,7 @@ class DaftCollection(Collection):
                 "Columns and destination column lists should be the same length!"
             )
         expressions = [col(c).alias(t) for c, t in zip(columns, to)]
-        return self.df.select(*expressions)
+        return self.on_df.select(*expressions)
 
     @lazy(default=True)
     def agg(self, *args, **kwargs) -> DaftCollection:
