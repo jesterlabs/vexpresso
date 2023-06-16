@@ -177,9 +177,7 @@ class DaftCollection(Collection):
 
     @lazy(default=True)
     def add_column(self, name: str, column: List[Any]) -> DaftCollection:
-        df = self.daft_df.with_column(
-            "_vexpresso_index", indices(col(self.column_names[0]))
-        )
+        df = self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
         second_df = daft.from_pydict(
             {name: column, "_vexpresso_index": list(range(len(self)))}
         )
@@ -232,10 +230,13 @@ class DaftCollection(Collection):
         if query is not None:
             query = [query]
 
+        if query_embedding is not None:
+            query_embedding = [query_embedding]
+
         return self.batch_query(
             column=column,
             queries=query,
-            query_embeddings=[query_embedding],
+            query_embeddings=query_embedding,
             filter_conditions=filter_conditions,
             k=k,
             sort=sort,
@@ -383,7 +384,7 @@ class DaftCollection(Collection):
         if to is None:
             to = f"tranformed_{_args[0].name()}"
 
-        return collection.df.with_column(
+        return collection.on_df.with_column(
             to, transform_fn(*_args, **_kwargs), resource_request=resource_request
         )
 

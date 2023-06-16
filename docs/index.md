@@ -17,3 +17,9 @@ git clone git@github.com:shyamsn97/vexpresso.git
 cd vexpresso
 pip install -e .
 ```
+
+## What can Vexpresso do?
+- Embed and query multimodal data
+- deploy on a ray cluster
+- save / load from huggingface
+
