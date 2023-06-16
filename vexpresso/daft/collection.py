@@ -139,7 +139,10 @@ class DaftCollection(Collection):
 
     def to_list(self) -> List[Any]:
         collection = self.execute()
-        return list(collection.daft_df.to_pydict().values())
+        values = list(collection.daft_df.to_pydict().values())
+        if len(values) == 1:
+            return values[0]
+        return values
 
     def show(self, num_rows: Optional[int] = None):
         if num_rows is None:
@@ -189,19 +192,45 @@ class DaftCollection(Collection):
     def sort(self, column, desc=True) -> DaftCollection:
         return self.from_daft_df(self.daft_df.sort(col(column), desc=desc))
 
-    def _embed_queries(
+    def embed_query(
         self,
-        queries,
-        embedding_function,
+        query: Any,
+        embedding_column_name: Optional[str] = None,
+        embedding_fn: Optional[Transformation] = None,
         resource_request=ResourceRequest(),
         *args,
         **kwargs,
-    ):
+    ) -> Any:
+        return self.embed_queries(
+            queries=[query],
+            embedding_column_name=embedding_column_name,
+            embedding_fn=embedding_fn,
+            resource_request=resource_request,
+            *args,
+            **kwargs,
+        )[0]
+
+    def embed_queries(
+        self,
+        queries: List[Any],
+        embedding_column_name: Optional[str] = None,
+        embedding_fn: Optional[Transformation] = None,
+        resource_request=ResourceRequest(),
+        *args,
+        **kwargs,
+    ) -> Any:
+        if embedding_fn is None:
+            if embedding_column_name is None:
+                raise ValueError("Column name must be provided if embedding_fn is None")
+            embedding_fn = self.embedding_functions[embedding_column_name]
+        elif isinstance(embedding_fn, str):
+            embedding_fn = self.embedding_functions[embedding_fn]
+
         query_embeddings = (
             daft.from_pydict({"queries": queries})
             .with_column(
                 "query_embeddings",
-                embedding_function(col("queries"), *args, **kwargs),
+                embedding_fn(col("queries"), *args, **kwargs),
                 resource_request=resource_request,
             )
             .select("query_embeddings")
@@ -258,7 +287,7 @@ class DaftCollection(Collection):
         filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
         k: int = None,
         sort: bool = True,
-        embedding_fn: Optional[Transformation] = None,
+        embedding_fn: Optional[Union[Transformation, str]] = None,
         show_scores: bool = False,
         score_column_name: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
@@ -269,17 +298,22 @@ class DaftCollection(Collection):
         batch_size = len(queries) if query_embeddings is None else len(query_embeddings)
 
         if embedding_fn is not None:
-            if column in self.embedding_functions:
-                if embedding_fn != self.embedding_functions[column]:
-                    print(
-                        "embedding_fn may not be the same as whats in map! Updating what's in map..."
-                    )
-            self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+            if isinstance(embedding_fn, str):
+                embedding_fn = self.embedding_functions[embedding_fn]
+            else:
+                if column in self.embedding_functions:
+                    if embedding_fn != self.embedding_functions[column]:
+                        print(
+                            "embedding_fn may not be the same as whats in map! Updating what's in map..."
+                        )
+                self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+                embedding_fn = self.embedding_functions[column]
 
         if query_embeddings is None:
-            query_embeddings = self._embed_queries(
+            query_embeddings = self.embed_queries(
                 queries,
-                self.embedding_functions[column],
+                column,
+                embedding_fn,
                 resource_request,
                 *args,
                 **kwargs,

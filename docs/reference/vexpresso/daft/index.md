@@ -18,7 +18,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7efe48684af0>,
+    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7f5c90edb250>,
     embeddings: 'Optional[List[Any]]' = None,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None,
@@ -219,7 +219,13 @@ class DaftCollection(
 
                 collection = self.execute()
 
-                return list(collection.daft_df.to_pydict().values())
+                values = list(collection.daft_df.to_pydict().values())
+
+                if len(values) == 1:
+
+                    return values[0]
+
+                return values
 
             def show(self, num_rows: Optional[int] = None):
 
@@ -301,13 +307,15 @@ class DaftCollection(
 
                 return self.from_daft_df(self.daft_df.sort(col(column), desc=desc))
 
-            def _embed_queries(
+            def embed_query(
 
                 self,
 
-                queries,
+                query: Any,
 
-                embedding_function,
+                embedding_column_name: Optional[str] = None,
+
+                embedding_fn: Optional[Transformation] = None,
 
                 resource_request=ResourceRequest(),
 
@@ -315,7 +323,53 @@ class DaftCollection(
 
                 **kwargs,
 
-            ):
+            ) -> Any:
+
+                return self.embed_queries(
+
+                    queries=[query],
+
+                    embedding_column_name=embedding_column_name,
+
+                    embedding_fn=embedding_fn,
+
+                    resource_request=resource_request,
+
+                    *args,
+
+                    **kwargs,
+
+                )[0]
+
+            def embed_queries(
+
+                self,
+
+                queries: List[Any],
+
+                embedding_column_name: Optional[str] = None,
+
+                embedding_fn: Optional[Transformation] = None,
+
+                resource_request=ResourceRequest(),
+
+                *args,
+
+                **kwargs,
+
+            ) -> Any:
+
+                if embedding_fn is None:
+
+                    if embedding_column_name is None:
+
+                        raise ValueError("Column name must be provided if embedding_fn is None")
+
+                    embedding_fn = self.embedding_functions[embedding_column_name]
+
+                elif isinstance(embedding_fn, str):
+
+                    embedding_fn = self.embedding_functions[embedding_fn]
 
                 query_embeddings = (
 
@@ -325,7 +379,7 @@ class DaftCollection(
 
                         "query_embeddings",
 
-                        embedding_function(col("queries"), *args, **kwargs),
+                        embedding_fn(col("queries"), *args, **kwargs),
 
                         resource_request=resource_request,
 
@@ -431,7 +485,7 @@ class DaftCollection(
 
                 sort: bool = True,
 
-                embedding_fn: Optional[Transformation] = None,
+                embedding_fn: Optional[Union[Transformation, str]] = None,
 
                 show_scores: bool = False,
 
@@ -451,25 +505,35 @@ class DaftCollection(
 
                 if embedding_fn is not None:
 
-                    if column in self.embedding_functions:
+                    if isinstance(embedding_fn, str):
 
-                        if embedding_fn != self.embedding_functions[column]:
+                        embedding_fn = self.embedding_functions[embedding_fn]
 
-                            print(
+                    else:
 
-                                "embedding_fn may not be the same as whats in map! Updating what's in map..."
+                        if column in self.embedding_functions:
 
-                            )
+                            if embedding_fn != self.embedding_functions[column]:
 
-                    self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+                                print(
+
+                                    "embedding_fn may not be the same as whats in map! Updating what's in map..."
+
+                                )
+
+                        self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+
+                        embedding_fn = self.embedding_functions[column]
 
                 if query_embeddings is None:
 
-                    query_embeddings = self._embed_queries(
+                    query_embeddings = self.embed_queries(
 
                         queries,
 
-                        self.embedding_functions[column],
+                        column,
+
+                        embedding_fn,
 
                         resource_request,
 
@@ -1297,7 +1361,7 @@ def batch_query(
     filter_conditions: 'Optional[Dict[str, Dict[str, str]]]' = None,
     k: 'int' = None,
     sort: 'bool' = True,
-    embedding_fn: 'Optional[Transformation]' = None,
+    embedding_fn: 'Optional[Union[Transformation, str]]' = None,
     show_scores: 'bool' = False,
     score_column_name: 'Optional[str]' = None,
     resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
@@ -1326,7 +1390,7 @@ def batch_query(
 
                 sort: bool = True,
 
-                embedding_fn: Optional[Transformation] = None,
+                embedding_fn: Optional[Union[Transformation, str]] = None,
 
                 show_scores: bool = False,
 
@@ -1346,25 +1410,35 @@ def batch_query(
 
                 if embedding_fn is not None:
 
-                    if column in self.embedding_functions:
+                    if isinstance(embedding_fn, str):
 
-                        if embedding_fn != self.embedding_functions[column]:
+                        embedding_fn = self.embedding_functions[embedding_fn]
 
-                            print(
+                    else:
 
-                                "embedding_fn may not be the same as whats in map! Updating what's in map..."
+                        if column in self.embedding_functions:
 
-                            )
+                            if embedding_fn != self.embedding_functions[column]:
 
-                    self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+                                print(
+
+                                    "embedding_fn may not be the same as whats in map! Updating what's in map..."
+
+                                )
+
+                        self.embedding_functions[column] = get_embedding_fn(embedding_fn)
+
+                        embedding_fn = self.embedding_functions[column]
 
                 if query_embeddings is None:
 
-                    query_embeddings = self._embed_queries(
+                    query_embeddings = self.embed_queries(
 
                         queries,
 
-                        self.embedding_functions[column],
+                        column,
+
+                        embedding_fn,
 
                         resource_request,
 
@@ -1576,6 +1650,126 @@ def embed(
                     **kwargs,
 
                 )
+
+    
+#### embed_queries
+
+```python3
+def embed_queries(
+    self,
+    queries: 'List[Any]',
+    embedding_column_name: 'Optional[str]' = None,
+    embedding_fn: 'Optional[Transformation]' = None,
+    resource_request=ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
+    *args,
+    **kwargs
+) -> 'Any'
+```
+
+??? example "View Source"
+            def embed_queries(
+
+                self,
+
+                queries: List[Any],
+
+                embedding_column_name: Optional[str] = None,
+
+                embedding_fn: Optional[Transformation] = None,
+
+                resource_request=ResourceRequest(),
+
+                *args,
+
+                **kwargs,
+
+            ) -> Any:
+
+                if embedding_fn is None:
+
+                    if embedding_column_name is None:
+
+                        raise ValueError("Column name must be provided if embedding_fn is None")
+
+                    embedding_fn = self.embedding_functions[embedding_column_name]
+
+                elif isinstance(embedding_fn, str):
+
+                    embedding_fn = self.embedding_functions[embedding_fn]
+
+                query_embeddings = (
+
+                    daft.from_pydict({"queries": queries})
+
+                    .with_column(
+
+                        "query_embeddings",
+
+                        embedding_fn(col("queries"), *args, **kwargs),
+
+                        resource_request=resource_request,
+
+                    )
+
+                    .select("query_embeddings")
+
+                    .collect()
+
+                    .to_pydict()["query_embeddings"]
+
+                )
+
+                return query_embeddings
+
+    
+#### embed_query
+
+```python3
+def embed_query(
+    self,
+    query: 'Any',
+    embedding_column_name: 'Optional[str]' = None,
+    embedding_fn: 'Optional[Transformation]' = None,
+    resource_request=ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
+    *args,
+    **kwargs
+) -> 'Any'
+```
+
+??? example "View Source"
+            def embed_query(
+
+                self,
+
+                query: Any,
+
+                embedding_column_name: Optional[str] = None,
+
+                embedding_fn: Optional[Transformation] = None,
+
+                resource_request=ResourceRequest(),
+
+                *args,
+
+                **kwargs,
+
+            ) -> Any:
+
+                return self.embed_queries(
+
+                    queries=[query],
+
+                    embedding_column_name=embedding_column_name,
+
+                    embedding_fn=embedding_fn,
+
+                    resource_request=resource_request,
+
+                    *args,
+
+                    **kwargs,
+
+                )[0]
 
     
 #### exclude
@@ -2206,7 +2400,13 @@ Converts collection to list
 
                 collection = self.execute()
 
-                return list(collection.daft_df.to_pydict().values())
+                values = list(collection.daft_df.to_pydict().values())
+
+                if len(values) == 1:
+
+                    return values[0]
+
+                return values
 
     
 #### to_pandas

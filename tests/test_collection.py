@@ -98,7 +98,7 @@ def test_from_data():
 
     assert new_collection.retriever is collection.retriever
     assert new_collection.embedding_functions is collection.embedding_functions
-    assert new_collection["test"].to_list()[0] == list(range(10))
+    assert new_collection["test"].to_list() == list(range(10))
 
 def test_add_rows():
     data = {"test":[10,4,9], "test2":["1", "2", "3"]}
