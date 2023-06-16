@@ -18,11 +18,11 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7f8f5bfcb7c0>,
+    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7efe48684af0>,
     embeddings: 'Optional[List[Any]]' = None,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None,
-    lazy: 'bool' = True
+    lazy: 'bool' = False
 )
 ```
 
@@ -43,7 +43,7 @@ class DaftCollection(
 
                 daft_df: Optional[daft.DataFrame] = None,
 
-                lazy: bool = True,
+                lazy: bool = False,
 
             ):
 
@@ -95,49 +95,11 @@ class DaftCollection(
 
                 return self.daft_df.__repr__()
 
-            @lazy(default=True)
+            @property
 
-            def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
+            def on_df(self) -> Wrapper:
 
-                # for some reason this is super slow
-
-                if isinstance(idx, int):
-
-                    idx = [idx]
-
-                collection = (
-
-                    self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
-
-                    .filter({"_vexpresso_index": {"isin": idx}})
-
-                    .exclude("_vexpresso_index")
-
-                )
-
-                return collection
-
-            @lazy(default=True)
-
-            def rename(self, columns: List[str], to: List[str]) -> DaftCollection:
-
-                if len(columns) != len(to):
-
-                    raise ValueError(
-
-                        "Columns and destination column lists should be the same length!"
-
-                    )
-
-                expressions = [col(c).alias(t) for c, t in zip(columns, to)]
-
-                return self.df.select(*expressions)
-
-            @lazy(default=True)
-
-            def agg(self, *args, **kwargs) -> DaftCollection:
-
-                return self.from_df(self.daft_df.agg(*args, **kwargs))
+                return Wrapper(self)
 
             @property
 
@@ -227,26 +189,6 @@ class DaftCollection(
 
                 )
 
-            @lazy(default=True)
-
-            def add_column(self, name: str, column: List[Any]) -> DaftCollection:
-
-                df = self.daft_df.with_column(
-
-                    "_vexpresso_index", indices(col(self.column_names[0]))
-
-                )
-
-                second_df = daft.from_pydict(
-
-                    {name: column, "_vexpresso_index": list(range(len(self)))}
-
-                )
-
-                df = df.join(second_df, on="_vexpresso_index").exclude("_vexpresso_index")
-
-                return self.from_daft_df(df)
-
             def collect(self, in_place: bool = False):
 
                 if in_place:
@@ -286,6 +228,72 @@ class DaftCollection(
                     return self.daft_df.show(self.__len__())
 
                 return self.daft_df.show(num_rows)
+
+            @lazy(default=True)
+
+            def iloc(self, idx: Union[int, Iterable[int]]) -> DaftCollection:
+
+                # for some reason this is super slow
+
+                if isinstance(idx, int):
+
+                    idx = [idx]
+
+                collection = (
+
+                    self.on_df.with_column(
+
+                        "_vexpresso_index", indices(col(self.column_names[0]))
+
+                    )
+
+                    .filter({"_vexpresso_index": {"isin": idx}})
+
+                    .exclude("_vexpresso_index")
+
+                )
+
+                return collection
+
+            @lazy(default=True)
+
+            def rename(self, columns: Dict[str, str]) -> DaftCollection:
+
+                expressions = []
+
+                for column in self.column_names:
+
+                    if column in columns:
+
+                        expressions.append(col(column).alias(columns[column]))
+
+                    else:
+
+                        expressions.append(col(column))
+
+                return self.on_df.select(*expressions)
+
+            @lazy(default=True)
+
+            def agg(self, *args, **kwargs) -> DaftCollection:
+
+                return self.from_df(self.daft_df.agg(*args, **kwargs))
+
+            @lazy(default=True)
+
+            def add_column(self, name: str, column: List[Any]) -> DaftCollection:
+
+                df = self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+
+                second_df = daft.from_pydict(
+
+                    {name: column, "_vexpresso_index": list(range(len(self)))}
+
+                )
+
+                df = df.join(second_df, on="_vexpresso_index").exclude("_vexpresso_index")
+
+                return self.from_daft_df(df)
 
             @lazy(default=True)
 
@@ -371,13 +379,17 @@ class DaftCollection(
 
                     query = [query]
 
+                if query_embedding is not None:
+
+                    query_embedding = [query_embedding]
+
                 return self.batch_query(
 
                     column=column,
 
                     queries=query,
 
-                    query_embeddings=[query_embedding],
+                    query_embeddings=query_embedding,
 
                     filter_conditions=filter_conditions,
 
@@ -635,7 +647,7 @@ class DaftCollection(
 
                     to = f"tranformed_{_args[0].name()}"
 
-                return collection.df.with_column(
+                return collection.on_df.with_column(
 
                     to, transform_fn(*_args, **_kwargs), resource_request=resource_request
 
@@ -1077,6 +1089,10 @@ column_names
 df
 ```
 
+```python3
+on_df
+```
+
 #### Methods
 
     
@@ -1095,11 +1111,7 @@ def add_column(
 
             def add_column(self, name: str, column: List[Any]) -> DaftCollection:
 
-                df = self.daft_df.with_column(
-
-                    "_vexpresso_index", indices(col(self.column_names[0]))
-
-                )
+                df = self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
 
                 second_df = daft.from_pydict(
 
@@ -1267,7 +1279,7 @@ transformed_{column_name}
 
                     to = f"tranformed_{_args[0].name()}"
 
-                return collection.df.with_column(
+                return collection.on_df.with_column(
 
                     to, transform_fn(*_args, **_kwargs), resource_request=resource_request
 
@@ -1712,7 +1724,11 @@ def iloc(
 
                 collection = (
 
-                    self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+                    self.on_df.with_column(
+
+                        "_vexpresso_index", indices(col(self.column_names[0]))
+
+                    )
 
                     .filter({"_vexpresso_index": {"isin": idx}})
 
@@ -1793,13 +1809,17 @@ Query method, takes in queries or query embeddings and retrieves nearest content
 
                     query = [query]
 
+                if query_embedding is not None:
+
+                    query_embedding = [query_embedding]
+
                 return self.batch_query(
 
                     column=column,
 
                     queries=query,
 
-                    query_embeddings=[query_embedding],
+                    query_embeddings=query_embedding,
 
                     filter_conditions=filter_conditions,
 
@@ -1829,27 +1849,28 @@ Query method, takes in queries or query embeddings and retrieves nearest content
 ```python3
 def rename(
     self,
-    columns: 'List[str]',
-    to: 'List[str]'
+    columns: 'Dict[str, str]'
 ) -> 'DaftCollection'
 ```
 
 ??? example "View Source"
             @lazy(default=True)
 
-            def rename(self, columns: List[str], to: List[str]) -> DaftCollection:
+            def rename(self, columns: Dict[str, str]) -> DaftCollection:
 
-                if len(columns) != len(to):
+                expressions = []
 
-                    raise ValueError(
+                for column in self.column_names:
 
-                        "Columns and destination column lists should be the same length!"
+                    if column in columns:
 
-                    )
+                        expressions.append(col(column).alias(columns[column]))
 
-                expressions = [col(c).alias(t) for c, t in zip(columns, to)]
+                    else:
 
-                return self.df.select(*expressions)
+                        expressions.append(col(column))
+
+                return self.on_df.select(*expressions)
 
     
 #### save

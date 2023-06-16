@@ -37,6 +37,8 @@
 
         def create(
 
+            *args,
+
             collection_type: str = "daft",
 
             directory_or_repo_id: Optional[str] = None,
@@ -59,9 +61,7 @@
 
             cluster_kwargs: Dict[str, Any] = {},
 
-            *args,
-
-            **kwargs
+            **kwargs,
 
         ) -> Collection:
 
@@ -101,7 +101,7 @@
 
                     *args,
 
-                    **kwargs
+                    **kwargs,
 
                 )
 
@@ -121,7 +121,7 @@
 
             *args,
 
-            **kwargs
+            **kwargs,
 
         ) -> Collection:
 
@@ -135,7 +135,7 @@
 
                 *args,
 
-                **kwargs
+                **kwargs,
 
             )
 
@@ -179,7 +179,7 @@ def connect(
 
             *args,
 
-            **kwargs
+            **kwargs,
 
         ) -> Collection:
 
@@ -193,7 +193,7 @@ def connect(
 
                 *args,
 
-                **kwargs
+                **kwargs,
 
             )
 
@@ -202,6 +202,7 @@ def connect(
 
 ```python3
 def create(
+    *args,
     collection_type: str = 'daft',
     directory_or_repo_id: Optional[str] = None,
     token: Optional[str] = None,
@@ -213,13 +214,14 @@ def create(
     backend: str = 'python',
     cluster_address: Optional[str] = None,
     cluster_kwargs: Dict[str, Any] = {},
-    *args,
     **kwargs
 ) -> vexpresso.collection.Collection
 ```
 
 ??? example "View Source"
         def create(
+
+            *args,
 
             collection_type: str = "daft",
 
@@ -243,9 +245,7 @@ def create(
 
             cluster_kwargs: Dict[str, Any] = {},
 
-            *args,
-
-            **kwargs
+            **kwargs,
 
         ) -> Collection:
 
@@ -285,7 +285,7 @@ def create(
 
                     *args,
 
-                    **kwargs
+                    **kwargs,
 
                 )
 
@@ -298,6 +298,7 @@ def create(
 
 ```python3
 def create_collection(
+    *args,
     collection_type: str = 'daft',
     directory_or_repo_id: Optional[str] = None,
     token: Optional[str] = None,
@@ -309,13 +310,14 @@ def create_collection(
     backend: str = 'python',
     cluster_address: Optional[str] = None,
     cluster_kwargs: Dict[str, Any] = {},
-    *args,
     **kwargs
 ) -> vexpresso.collection.Collection
 ```
 
 ??? example "View Source"
         def create(
+
+            *args,
 
             collection_type: str = "daft",
 
@@ -339,9 +341,7 @@ def create_collection(
 
             cluster_kwargs: Dict[str, Any] = {},
 
-            *args,
-
-            **kwargs
+            **kwargs,
 
         ) -> Collection:
 
@@ -381,7 +381,7 @@ def create_collection(
 
                     *args,
 
-                    **kwargs
+                    **kwargs,
 
                 )
 
