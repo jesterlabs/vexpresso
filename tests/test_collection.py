@@ -84,6 +84,18 @@ def test_add_column():
     added = collection.add_column("new", data_2)
     assert added.to_dict()["new"] == data_2
 
+def test_add_rows():
+    data = {"test":list(range(100)), "test2":["s"]*100}
+    collection = vexpresso.create(data=data)
+
+    new_rows = [{"test":[1,2], "test2":["te", "p"]}]
+
+    data_ = {"test":list(range(100)) + [1,2], "test2": ["s"]*100 + ["te", "p"]}
+
+    added = collection.add_rows(new_rows)
+    assert added.to_dict()["new"] == data_
+
+
 def test_sort():
     data = {"test":[10,4,9,10,0,0,1]}
     collection = vexpresso.create(data=data)
