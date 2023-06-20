@@ -91,13 +91,16 @@ class DaftCollection(Collection):
                     columns.append(c)
         return self.from_daft_df(self.daft_df.select(*columns))
 
-    def add_rows(self, data: List[Dict[str, Any]]) -> DaftCollection:
+    def add_rows(self, entries: List[Dict[str, Any]]) -> DaftCollection:
         dic = self.to_dict()
         for k in dic:
-            for d in data:
+            for d in entries:
                 value = d.get(k, None)
                 dic[k].append(value)
         return self.from_data(dic)
+
+    def add(self, entries: List[Dict[str, Any]]) -> DaftCollection:
+        return self.add_row(entries)
 
     def set_embedding_function(self, column: str, embedding_function: Transformation):
         self.embedding_functions[column] = embedding_function
@@ -180,7 +183,10 @@ class DaftCollection(Collection):
 
     @lazy(default=True)
     def add_column(self, name: str, column: List[Any]) -> DaftCollection:
-        df = self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+        df = self.df
+        if name in self.column_names:
+            df = df.exclude(name)
+        df = df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
         second_df = daft.from_pydict(
             {name: column, "_vexpresso_index": list(range(len(self)))}
         )
@@ -249,7 +255,7 @@ class DaftCollection(Collection):
         k: int = None,
         sort: bool = True,
         embedding_fn: Optional[Transformation] = None,
-        show_scores: bool = False,
+        return_scores: bool = False,
         score_column_name: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
         retriever: Optional[BaseRetriever] = None,
@@ -270,7 +276,7 @@ class DaftCollection(Collection):
             k=k,
             sort=sort,
             embedding_fn=embedding_fn,
-            show_scores=show_scores,
+            return_scores=return_scores,
             score_column_name=score_column_name,
             resource_request=resource_request,
             retriever=retriever,
@@ -288,7 +294,7 @@ class DaftCollection(Collection):
         k: int = None,
         sort: bool = True,
         embedding_fn: Optional[Union[Transformation, str]] = None,
-        show_scores: bool = False,
+        return_scores: bool = False,
         score_column_name: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
         retriever: Optional[BaseRetriever] = None,
@@ -333,7 +339,7 @@ class DaftCollection(Collection):
             retriever,
             k,
             sort,
-            show_scores,
+            return_scores,
             score_column_name,
             resource_request,
         )

@@ -97,7 +97,7 @@
 
                 embedding_fn: Optional[Transformation] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -422,7 +422,7 @@ class Collection(
 
                 embedding_fn: Optional[Transformation] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -911,7 +911,7 @@ def query(
     k: 'int' = None,
     sort: 'bool' = True,
     embedding_fn: 'Optional[Transformation]' = None,
-    show_scores: 'bool' = False,
+    return_scores: 'bool' = False,
     score_column_name: 'Optional[str]' = None,
     resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
     retriever: 'Optional[BaseRetriever]' = None,
@@ -951,7 +951,7 @@ Query method, takes in queries or query embeddings and retrieves nearest content
 
                 embedding_fn: Optional[Transformation] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 

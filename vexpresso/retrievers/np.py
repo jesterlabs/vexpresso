@@ -13,13 +13,13 @@ def is_batched(arr: np.ndarray) -> bool:
 
 def get_norm_vector(vector: np.ndarray) -> np.array:
     if len(vector.shape) == 1:
-        return vector / np.linalg.norm(vector)
-    return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis] + 1e-4
+        return vector / np.linalg.norm(vector) + 1e-5
+    return vector / np.linalg.norm(vector, axis=-1)[:, np.newaxis] + 1e-5
 
 
 def cosine_similarity(query_vector, vectors):
-    norm_vectors = get_norm_vector(vectors)
-    norm_query_vector = get_norm_vector(query_vector)
+    norm_vectors = get_norm_vector(vectors + 1e-5)
+    norm_query_vector = get_norm_vector(query_vector + 1e-5)
     similarities = np.dot(norm_query_vector, norm_vectors.T)
     return similarities
 

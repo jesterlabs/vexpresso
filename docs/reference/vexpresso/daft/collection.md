@@ -159,19 +159,23 @@
 
                 return self.from_daft_df(self.daft_df.select(*columns))
 
-            def add_rows(self, data: List[Dict[str, Any]]) -> DaftCollection:
+            def add_rows(self, entries: List[Dict[str, Any]]) -> DaftCollection:
 
                 dic = self.to_dict()
 
                 for k in dic:
 
-                    for d in data:
+                    for d in entries:
 
                         value = d.get(k, None)
 
                         dic[k].append(value)
 
                 return self.from_data(dic)
+
+            def add(self, entries: List[Dict[str, Any]]) -> DaftCollection:
+
+                return self.add_row(entries)
 
             def set_embedding_function(self, column: str, embedding_function: Transformation):
 
@@ -307,7 +311,13 @@
 
             def add_column(self, name: str, column: List[Any]) -> DaftCollection:
 
-                df = self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+                df = self.df
+
+                if name in self.column_names:
+
+                    df = df.exclude(name)
+
+                df = df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
 
                 second_df = daft.from_pydict(
 
@@ -433,7 +443,7 @@
 
                 embedding_fn: Optional[Transformation] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -471,7 +481,7 @@
 
                     embedding_fn=embedding_fn,
 
-                    show_scores=show_scores,
+                    return_scores=return_scores,
 
                     score_column_name=score_column_name,
 
@@ -505,7 +515,7 @@
 
                 embedding_fn: Optional[Union[Transformation, str]] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -585,7 +595,7 @@
 
                     sort,
 
-                    show_scores,
+                    return_scores,
 
                     score_column_name,
 
@@ -962,7 +972,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7fc4d42b0e50>,
+    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7f9d5446f7f0>,
     embeddings: 'Optional[List[Any]]' = None,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None,
@@ -1085,19 +1095,23 @@ class DaftCollection(
 
                 return self.from_daft_df(self.daft_df.select(*columns))
 
-            def add_rows(self, data: List[Dict[str, Any]]) -> DaftCollection:
+            def add_rows(self, entries: List[Dict[str, Any]]) -> DaftCollection:
 
                 dic = self.to_dict()
 
                 for k in dic:
 
-                    for d in data:
+                    for d in entries:
 
                         value = d.get(k, None)
 
                         dic[k].append(value)
 
                 return self.from_data(dic)
+
+            def add(self, entries: List[Dict[str, Any]]) -> DaftCollection:
+
+                return self.add_row(entries)
 
             def set_embedding_function(self, column: str, embedding_function: Transformation):
 
@@ -1233,7 +1247,13 @@ class DaftCollection(
 
             def add_column(self, name: str, column: List[Any]) -> DaftCollection:
 
-                df = self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+                df = self.df
+
+                if name in self.column_names:
+
+                    df = df.exclude(name)
+
+                df = df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
 
                 second_df = daft.from_pydict(
 
@@ -1359,7 +1379,7 @@ class DaftCollection(
 
                 embedding_fn: Optional[Transformation] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -1397,7 +1417,7 @@ class DaftCollection(
 
                     embedding_fn=embedding_fn,
 
-                    show_scores=show_scores,
+                    return_scores=return_scores,
 
                     score_column_name=score_column_name,
 
@@ -1431,7 +1451,7 @@ class DaftCollection(
 
                 embedding_fn: Optional[Union[Transformation, str]] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -1511,7 +1531,7 @@ class DaftCollection(
 
                     sort,
 
-                    show_scores,
+                    return_scores,
 
                     score_column_name,
 
@@ -2104,6 +2124,21 @@ on_df
 #### Methods
 
     
+#### add
+
+```python3
+def add(
+    self,
+    entries: 'List[Dict[str, Any]]'
+) -> 'DaftCollection'
+```
+
+??? example "View Source"
+            def add(self, entries: List[Dict[str, Any]]) -> DaftCollection:
+
+                return self.add_row(entries)
+
+    
 #### add_column
 
 ```python3
@@ -2119,7 +2154,13 @@ def add_column(
 
             def add_column(self, name: str, column: List[Any]) -> DaftCollection:
 
-                df = self.df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
+                df = self.df
+
+                if name in self.column_names:
+
+                    df = df.exclude(name)
+
+                df = df.with_column("_vexpresso_index", indices(col(self.column_names[0])))
 
                 second_df = daft.from_pydict(
 
@@ -2137,18 +2178,18 @@ def add_column(
 ```python3
 def add_rows(
     self,
-    data: 'List[Dict[str, Any]]'
+    entries: 'List[Dict[str, Any]]'
 ) -> 'DaftCollection'
 ```
 
 ??? example "View Source"
-            def add_rows(self, data: List[Dict[str, Any]]) -> DaftCollection:
+            def add_rows(self, entries: List[Dict[str, Any]]) -> DaftCollection:
 
                 dic = self.to_dict()
 
                 for k in dic:
 
-                    for d in data:
+                    for d in entries:
 
                         value = d.get(k, None)
 
@@ -2306,7 +2347,7 @@ def batch_query(
     k: 'int' = None,
     sort: 'bool' = True,
     embedding_fn: 'Optional[Union[Transformation, str]]' = None,
-    show_scores: 'bool' = False,
+    return_scores: 'bool' = False,
     score_column_name: 'Optional[str]' = None,
     resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
     retriever: 'Optional[BaseRetriever]' = None,
@@ -2336,7 +2377,7 @@ def batch_query(
 
                 embedding_fn: Optional[Union[Transformation, str]] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -2416,7 +2457,7 @@ def batch_query(
 
                     sort,
 
-                    show_scores,
+                    return_scores,
 
                     score_column_name,
 
@@ -2889,7 +2930,7 @@ def query(
     k: 'int' = None,
     sort: 'bool' = True,
     embedding_fn: 'Optional[Transformation]' = None,
-    show_scores: 'bool' = False,
+    return_scores: 'bool' = False,
     score_column_name: 'Optional[str]' = None,
     resource_request: 'ResourceRequest' = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None),
     retriever: 'Optional[BaseRetriever]' = None,
@@ -2929,7 +2970,7 @@ Query method, takes in queries or query embeddings and retrieves nearest content
 
                 embedding_fn: Optional[Transformation] = None,
 
-                show_scores: bool = False,
+                return_scores: bool = False,
 
                 score_column_name: Optional[str] = None,
 
@@ -2967,7 +3008,7 @@ Query method, takes in queries or query embeddings and retrieves nearest content
 
                     embedding_fn=embedding_fn,
 
-                    show_scores=show_scores,
+                    return_scores=return_scores,
 
                     score_column_name=score_column_name,
 

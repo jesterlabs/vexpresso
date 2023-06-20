@@ -61,6 +61,7 @@ doc:
 	cp examples/*.ipynb docs/examples/
 	rm docs/examples/Showcase.ipynb
 	cp examples/Showcase.ipynb docs/
+	cp README.md docs/index.md
 
 serve-docs:
 	mkdocs serve

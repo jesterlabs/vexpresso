@@ -93,7 +93,7 @@
 
             sort: bool = True,
 
-            show_scores: bool = False,
+            return_scores: bool = False,
 
             score_column_name: Optional[str] = None,
 
@@ -169,7 +169,7 @@
 
                     _df = _df.sort(col(score_column_name), desc=True)
 
-                if not show_scores:
+                if not return_scores:
 
                     _df = _df.exclude(score_column_name)
 
@@ -243,7 +243,7 @@ def retrieve(
     retriever: vexpresso.retrievers.np.Retriever,
     k: int = None,
     sort: bool = True,
-    show_scores: bool = False,
+    return_scores: bool = False,
     score_column_name: Optional[str] = None,
     resource_request: daft.resource_request.ResourceRequest = ResourceRequest(num_cpus=None, num_gpus=None, memory_bytes=None)
 ) -> List[daft.dataframe.dataframe.DataFrame]
@@ -266,7 +266,7 @@ def retrieve(
 
             sort: bool = True,
 
-            show_scores: bool = False,
+            return_scores: bool = False,
 
             score_column_name: Optional[str] = None,
 
@@ -342,7 +342,7 @@ def retrieve(
 
                     _df = _df.sort(col(score_column_name), desc=True)
 
-                if not show_scores:
+                if not return_scores:
 
                     _df = _df.exclude(score_column_name)
 

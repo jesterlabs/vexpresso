@@ -51,7 +51,7 @@ def retrieve(
     retriever: Retriever,
     k: int = None,
     sort: bool = True,
-    show_scores: bool = False,
+    return_scores: bool = False,
     score_column_name: Optional[str] = None,
     resource_request: ResourceRequest = ResourceRequest(),
 ) -> List[daft.DataFrame]:
@@ -92,7 +92,7 @@ def retrieve(
         if sort:
             _df = _df.sort(col(score_column_name), desc=True)
 
-        if not show_scores:
+        if not return_scores:
             _df = _df.exclude(score_column_name)
 
         dfs.append(_df)
