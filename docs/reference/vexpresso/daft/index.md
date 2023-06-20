@@ -18,7 +18,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7f5c90edb250>,
+    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7fc4d42b0e50>,
     embeddings: 'Optional[List[Any]]' = None,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None,
