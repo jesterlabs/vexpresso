@@ -1,5 +1,9 @@
 <div class="header" align="center"><h1 style="display: inline;"><img src="https://github.com/shyamsn97/vexpresso/blob/main/docs/_static/cup.png" alt="drawing" width="50" height="50" align="center">Vexpresso</h1><p>Vexpresso is a simple and scalable multi-modal vector database built with <a href="https://www.getdaft.io/">Daft</a></p></div>
 
+[![PyPi version](https://badgen.net/pypi/v/vexpresso/)](https://pypi.org/project/vexpresso) | [docs](https://vexpresso.readthedocs.io/en/latest/)
+
+
+
 <figure>
 <!-- <video width="320" height="320" controls>
   <source src="docs/_static/PokemonGradio.mp4" type="video/mp4">
