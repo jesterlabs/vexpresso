@@ -972,7 +972,7 @@
 ```python3
 class DaftCollection(
     data: 'Optional[Union[str, pd.DataFrame, Dict[str, Any]]]' = None,
-    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7f336a7c6820>,
+    retriever: 'BaseRetriever' = <vexpresso.retrievers.np.Retriever object at 0x7f1607d50580>,
     embeddings: 'Optional[List[Any]]' = None,
     embedding_functions: 'Dict[str, Any]' = {},
     daft_df: 'Optional[daft.DataFrame]' = None,
