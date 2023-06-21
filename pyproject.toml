@@ -5,7 +5,7 @@
 name = "vexpresso"
 requires-python = ">=3.8"
 readme = "README.md"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
     { name = "Shyam Sudhakaran", email = "shyamsnair@protonmail.com" }
 ]
