@@ -1,6 +1,4 @@
-<div class="header" align="center"><h1 style="display: inline;"><img src="docs/_static/cup.png" alt="drawing" width="50" height="50" align="center">Vexpresso</h1></div>
-
-Vexpresso is a simple and scalable multi-modal vector database built with [Daft](https://www.getdaft.io/)
+<div class="header" align="center"><h1 style="display: inline;"><img src="docs/_static/cup.png" alt="drawing" width="50" height="50" align="center">Vexpresso</h1><p>Vexpresso is a simple and scalable multi-modal vector database built with <a href="https://www.getdaft.io/">Daft</a></p></div>
 
 <figure>
 <video width="320" height="320" controls>
