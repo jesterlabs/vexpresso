@@ -120,3 +120,15 @@ collection = collection.add(
 )
 collection = collection.execute()
 ```
+
+## Resources
+- [Daft](https://www.getdaft.io/)
+- [Ray](https://www.ray.io/)
+- [Vector Database Intro](https://www.pinecone.io/learn/vector-database/)
+
+## Contributing
+
+Feel free to make a pull request or open an issue for a feature!
+
+
+
