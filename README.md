@@ -14,7 +14,7 @@
 
 🌐 **Scalable**: Because Vexpresso uses [Daft](https://www.getdaft.io/), it can be scaled using [Ray](https://www.ray.io/) to multi-gpu / cpu clusters.
 
-📚 **Persistant**: Easy Saving and Loading functionality: Vexpresso has easily accessible functions for saving / loading to huggingface datasets.
+📚 **Persistent**: Easy Saving and Loading functionality: Vexpresso has easily accessible functions for saving / loading to huggingface datasets.
 
 ## Installation
 To install from PyPi:
