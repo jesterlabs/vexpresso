@@ -1,23 +1,28 @@
-# Welcome to Vexpresso
+<div class="header" align="center"><h1 style="display: inline;"><img src="docs/_static/cup.png" alt="drawing" width="50" height="50" align="center">Vexpresso</h1><p>Vexpresso is a simple and scalable multi-modal vector database built with <a href="https://www.getdaft.io/">Daft</a></p></div>
 
-![](./docs/_static/cup.png)
-
-Vexpresso is a quick, easy to use, and scalable vector database built on [Daft](https://www.getdaft.io/)
-
-#### Querying Pokemon with images and text
-<video width="320" height="320" controls>
+<figure>
+<!-- <video width="320" height="320" controls>
   <source src="docs/_static/PokemonGradio.mp4" type="video/mp4">
-</video>
+</video> -->
+<img src="docs/_static/PokemonGradio.gif">
+<figcaption>Querying Pokemon with images and text</figcaption>
+</figure>
 
-## Quickstart
+## Features
+🍵  **Simple**: Vexpresso is lightweight and is very easy to get started!
 
-### Installation
+🔌  **Flexible**: Unlike many other vector databases, Vexpresso supports arbitrary datatypes. This means that you can query muti-modal objects (images, audio, video, etc...)
 
-#### From PyPI
+🌐 **Scalable**: Because Vexpresso uses [Daft](https://www.getdaft.io/), it can be scaled using [Ray](https://www.ray.io/) to multi-gpu / cpu clusters.
+
+📚 **Persistent**: Easy Saving and Loading functionality: Vexpresso has easily accessible functions for saving / loading to huggingface datasets.
+
+## Installation
+To install from PyPi:
 
 ```pip install vexpresso```
 
-#### From source
+To install from source:
 
 ```
 git clone git@github.com:shyamsn97/vexpresso.git
@@ -25,15 +30,9 @@ cd vexpresso
 pip install -e .
 ```
 
-### Features
-- Simple: Vexpresso is lightweight and is very easy to get started!
-- Flexible: Unlike many other vector databases, Vexpresso supports arbitrary datatypes. This means that you can query images, audio, video, etc.
-- Scalable: Because Vexpresso uses [Daft](https://www.getdaft.io/), it can be scaled using [Ray](https://www.ray.io/) to multi-gpu / cpu clusters.
-- Easy Saving and Loading functionality: Vexpresso has easily accessible functions for saving / loading to huggingface datasets.
+## Usage
 
-### Usage
-
-Check out our [Showcase](./examples/Showcase.ipynb) notebook for a more detailed walkthrough!
+> 🔥 Check out our [Showcase](./examples/Showcase.ipynb) notebook for a more detailed walkthrough!
 
 In this simple example, we create a simple collection and embed using huggingface sentence transformers.
 

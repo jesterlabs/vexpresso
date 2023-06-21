@@ -54,3 +54,5 @@ mlruns/*
 */**/save_collection/*
 */**/cov-report/*
 */**/gradio_cached_examples/*
+
+.DS_Store
