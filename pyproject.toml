@@ -3,7 +3,7 @@
 
 [project]
 name = "vexpresso"
-requires-python = ">=3.9.0"
+requires-python = ">=3.8"
 readme = "README.md"
 version = "0.0.1"
 authors = [
