@@ -1,11 +1,9 @@
 <div class="header" align="center"><h1 style="display: inline;"><img src="docs/_static/cup.png" alt="drawing" width="50" height="50" align="center">Vexpresso</h1><p>Vexpresso is a simple and scalable multi-modal vector database built with <a href="https://www.getdaft.io/">Daft</a></p></div>
 
-<figure>
 <video width="320" height="320" controls>
   <source src="docs/_static/PokemonGradio.mp4" type="video/mp4">
 </video>
 <figcaption>Querying Pokemon with images and text</figcaption>
-</figure>
 
 ## Features
 🍵  **Simple**: Vexpresso is lightweight and is very easy to get started!
