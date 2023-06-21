@@ -1,0 +1,6 @@
+mkdocs-material
+pymdown-extensions
+mkdocs-jupyter
+mkdocs-literate-nav
+mkdocstrings
+mkdocs
