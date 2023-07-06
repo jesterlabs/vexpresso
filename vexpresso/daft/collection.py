@@ -12,8 +12,8 @@ from daft import col
 from vexpresso.collection import Collection
 from vexpresso.daft.filter import FilterHelper
 from vexpresso.daft.utils import Wrapper, indices, retrieve
-from vexpresso.embedding_functions import get_embedding_fn
-from vexpresso.retrievers import BaseRetriever, Retriever
+from vexpresso.embedding_functions import EMBEDDING_FUNCTIONS_MAP, get_embedding_fn
+from vexpresso.retrievers import RETRIEVERS_MAP, BaseRetriever, Retriever
 from vexpresso.utils import (
     DataType,
     Document,
@@ -230,7 +230,11 @@ class DaftCollection(Collection):
                 raise ValueError("Column name must be provided if embedding_fn is None")
             embedding_fn = self.embedding_functions[embedding_column_name]
         elif isinstance(embedding_fn, str):
-            embedding_fn = self.embedding_functions[embedding_fn]
+            # grab from map
+            if embedding_fn in self.column_names:
+                embedding_fn = self.embedding_functions[embedding_fn]
+            else:
+                embedding_fn = EMBEDDING_FUNCTIONS_MAP[embedding_fn]
 
         query_embeddings = (
             daft.from_pydict({"queries": queries})
@@ -254,11 +258,11 @@ class DaftCollection(Collection):
         filter_conditions: Optional[Dict[str, Dict[str, str]]] = None,
         k: int = None,
         sort: bool = True,
-        embedding_fn: Optional[Transformation] = None,
+        embedding_fn: Optional[Union[Transformation, str]] = None,
         return_scores: bool = False,
         score_column_name: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
-        retriever: Optional[BaseRetriever] = None,
+        retriever: Optional[Union[BaseRetriever, str]] = None,
         *args,
         **kwargs,
     ) -> Collection:
@@ -297,7 +301,7 @@ class DaftCollection(Collection):
         return_scores: bool = False,
         score_column_name: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
-        retriever: Optional[BaseRetriever] = None,
+        retriever: Optional[Union[BaseRetriever, str]] = None,
         *args,
         **kwargs,
     ) -> List[Collection]:
@@ -305,7 +309,12 @@ class DaftCollection(Collection):
 
         if embedding_fn is not None:
             if isinstance(embedding_fn, str):
-                embedding_fn = self.embedding_functions[embedding_fn]
+                # grab from map or use one in column name
+                if embedding_fn in self.column_names:
+                    embedding_fn = self.embedding_functions[embedding_fn]()
+                else:
+                    embedding_fn = EMBEDDING_FUNCTIONS_MAP[embedding_fn]()
+                embedding_fn = get_embedding_fn(embedding_fn)
             else:
                 if column in self.embedding_functions:
                     if embedding_fn != self.embedding_functions[column]:
@@ -327,6 +336,8 @@ class DaftCollection(Collection):
 
         if retriever is None:
             retriever = self.retriever
+        if isinstance(retriever, str):
+            retriever = RETRIEVERS_MAP[retriever]()
 
         if k is None:
             k = self.__len__()
@@ -433,7 +444,7 @@ class DaftCollection(Collection):
         self,
         column: Union[DaftCollection, List[Any], str],
         *args,
-        embedding_fn: Optional[Transformation] = None,
+        embedding_fn: Optional[Union[Transformation, str]] = None,
         to: Optional[str] = None,
         resource_request: ResourceRequest = ResourceRequest(),
         datatype: DataType = DataType.python(),
@@ -457,7 +468,10 @@ class DaftCollection(Collection):
         if embedding_fn is None:
             embedding_fn = self.embedding_functions[to]
         else:
-            self.embedding_functions[to] = embedding_fn
+            if isinstance(embedding_fn, str):
+                self.embedding_functions[to] = EMBEDDING_FUNCTIONS_MAP[embedding_fn]()
+            else:
+                self.embedding_functions[to] = embedding_fn
 
         self.embedding_functions[to] = get_embedding_fn(
             self.embedding_functions[to], datatype=datatype, init_kwargs=init_kwargs
